@@ -28,8 +28,8 @@ export async function POST(req) {
     const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
     const bold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
 
-    // ===== TO ADDRESS =====
-    let yTo = 750;
+    // ===== TO ADDRESS (FIXED POSITION) =====
+    let yTo = 700; // 🔥 moved down so it becomes visible
 
     page.drawText("TO,", {
       x: 50,
@@ -38,18 +38,20 @@ export async function POST(req) {
       font
     });
 
-    yTo -= 18;
+    yTo -= 16;
 
     const addressLines = (to || "").split("\n");
 
     addressLines.forEach(line => {
-      page.drawText(line, {
-        x: 50,
-        y: yTo,
-        size: 11,
-        font
-      });
-      yTo -= 16;
+      if (line.trim()) {
+        page.drawText(line, {
+          x: 50,
+          y: yTo,
+          size: 11,
+          font
+        });
+        yTo -= 14;
+      }
     });
 
     // ===== HEADER =====
@@ -84,7 +86,7 @@ export async function POST(req) {
           ? (t.qty || 0) * (t.rate || 0)
           : (t.amount || 0);
 
-      // Line 1: Task name
+      // Line 1
       page.drawText(`${i + 1}. ${t.name}`, {
         x: 50,
         y,
@@ -94,10 +96,10 @@ export async function POST(req) {
 
       y -= 14;
 
-      // Line 2: Values
+      // Line 2
       if (t.mode === "qty") {
         page.drawText(
-          `${t.qty} ${t.unit || ""} x ${t.rate} = INR ${Math.round(totalVal)}`,
+          `${t.qty || 0} ${t.unit || ""} x ${t.rate || 0} = INR ${Math.round(totalVal)}`,
           {
             x: 70,
             y,
