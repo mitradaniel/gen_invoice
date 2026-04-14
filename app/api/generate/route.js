@@ -1,4 +1,6 @@
 import { PDFDocument, StandardFonts } from "pdf-lib";
+import fs from "fs";
+import path from "path";
 
 export async function POST(req) {
   try {
@@ -15,24 +17,12 @@ export async function POST(req) {
       total
     } = body;
 
-    // 🔥 ALWAYS USE ABSOLUTE URL IN VERCEL
-    const baseUrl = process.env.VERCEL_URL
-      ? `https://${process.env.VERCEL_URL}`
-      : "http://localhost:3000";
+    // ✅ LOAD TEMPLATE FROM FILE SYSTEM (BEST WAY)
+    const filePath = path.join(process.cwd(), "public", "Invoice_Template.pdf");
 
-    const templateUrl = `${baseUrl}/Invoice_Template.pdf`;
+    const existingPdfBytes = fs.readFileSync(filePath);
 
-    console.log("Template URL:", templateUrl);
-
-    const res = await fetch(templateUrl);
-
-    if (!res.ok) {
-      throw new Error("Template not found");
-    }
-
-    const templateBytes = await res.arrayBuffer();
-
-    const pdfDoc = await PDFDocument.load(templateBytes);
+    const pdfDoc = await PDFDocument.load(existingPdfBytes);
     const page = pdfDoc.getPages()[0];
 
     const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
@@ -58,7 +48,7 @@ export async function POST(req) {
           ? (t.qty || 0) * (t.rate || 0)
           : (t.amount || 0);
 
-      // Line 1 (task)
+      // Line 1
       page.drawText(`${i + 1}. ${t.name}`, {
         x: 50,
         y,
@@ -68,7 +58,7 @@ export async function POST(req) {
 
       y -= 14;
 
-      // Line 2 (values)
+      // Line 2
       if (t.mode === "qty") {
         page.drawText(
           `${t.qty} ${t.unit || ""} x ${t.rate} = INR ${totalVal}`,
@@ -125,7 +115,7 @@ export async function POST(req) {
     });
 
   } catch (err) {
-    console.error("PDF ERROR:", err);
+    console.error("🔥 PDF ERROR:", err);
     return new Response("PDF generation failed", { status: 500 });
   }
 }
