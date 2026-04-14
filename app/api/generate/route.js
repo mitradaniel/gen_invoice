@@ -12,6 +12,12 @@ export async function POST(req) {
       invoice = "",
       date = "",
       to = "",
+      name: "",
+      qty: 0,
+      rate: 0,
+      amount: 0,
+      unit: "Nos",   // ✅ NEW
+      mode: "qty"    // qty | rate | direct      
       subtotal = 0,
       sgst = 0,
       cgst = 0,
