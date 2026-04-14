@@ -23,9 +23,12 @@ export async function POST(req) {
 
   tasks.forEach((t, i) => {
     page.drawText(`${i + 1}. ${t.name}`, { x: 50, y });
+    y -= 10;
+    page.drawText(`Total INR ${subtotal}`, { x: 50, y });
     y -= 15;
-    page.drawText(`${t.qty} x ${t.rate} = ₹${t.qty * t.rate}`, { x: 70, y });
+    page.drawText(`GST 18% INR ${gst}`, { x: 50, y });
     y -= 20;
+    page.drawText(`Grand Total INR ${total}`, { x: 50, y });
   });
 
   page.drawText(`Subtotal: ₹${subtotal}`, { x: 50, y });
