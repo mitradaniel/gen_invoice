@@ -3,16 +3,19 @@ import { useState } from "react";
 
 export default function Page() {
   const [tasks, setTasks] = useState([
-    { name: "", qty: 0, rate: 0, amount: 0, mode: "qty" }
+    { name: "", qty: 0, rate: 0, amount: 0, unit: "Nos", mode: "qty" }
   ]);
 
   const [subject, setSubject] = useState("");
   const [invoice, setInvoice] = useState("2026/27/001");
   const [date, setDate] = useState("");
-  const [to, setTo] = useState(""); // ✅ ADDED
+  const [to, setTo] = useState("");
 
   const addTask = () => {
-    setTasks([...tasks, { name: "", qty: 0, rate: 0, amount: 0, mode: "qty" }]);
+    setTasks([
+      ...tasks,
+      { name: "", qty: 0, rate: 0, amount: 0, unit: "Nos", mode: "qty" }
+    ]);
   };
 
   const updateTask = (i, field, value) => {
@@ -21,8 +24,11 @@ export default function Page() {
     setTasks(updated);
   };
 
+  // 🔥 CORE CALCULATION LOGIC
   const getTotal = (t) => {
-    return t.mode === "qty" ? t.qty * t.rate : t.amount;
+    if (t.mode === "qty") return (t.qty || 0) * (t.rate || 0);
+    if (t.mode === "rate") return t.rate || 0;
+    return t.amount || 0;
   };
 
   const subtotal = tasks.reduce((s, t) => s + getTotal(t), 0);
@@ -31,61 +37,49 @@ export default function Page() {
   const total = subtotal + sgst + cgst;
 
   const generatePDF = async () => {
-    try {
-      const res = await fetch("/api/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+    const res = await fetch("/api/generate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        to,
+        tasks,
+        subject,
+        invoice,
+        date,
+        subtotal,
+        sgst,
+        cgst,
+        total
+      })
+    });
 
-        // ✅ UPDATED JSON
-        body: JSON.stringify({
-          to,
-
-          tasks,
-          subject,
-          invoice,
-          date,
-
-          subtotal,
-          sgst,
-          cgst,
-          total
-        })
-      });
-
-      if (!res.ok) {
-        alert("PDF generation failed");
-        return;
-      }
-
-      const blob = await res.blob();
-      const url = window.URL.createObjectURL(blob);
-
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `${invoice}_${subject}.pdf`;
-      a.click();
-    } catch (err) {
-      alert("Error generating PDF");
+    if (!res.ok) {
+      alert("PDF generation failed");
+      return;
     }
+
+    const blob = await res.blob();
+    const url = window.URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${invoice}_${subject}.pdf`;
+    a.click();
   };
 
   return (
-    <div style={{ maxWidth: 480, margin: "auto", padding: 15, fontFamily: "sans-serif" }}>
-      
-      {/* TITLE */}
-      <h2 style={{ textAlign: "center", marginBottom: 10 }}>
-        Khemraj M Rasganya Invoice
-      </h2>
+    <div style={{ maxWidth: 480, margin: "auto", padding: 15 }}>
 
-      {/* ✅ TO FIELD (NEW) */}
+      <h2 style={{ textAlign: "center" }}>Khemraj Invoice</h2>
+
+      {/* TO */}
       <textarea
-        placeholder="TO Address (each line new line)"
+        placeholder="TO Address"
         value={to}
         onChange={(e) => setTo(e.target.value)}
         style={input}
       />
 
-      {/* SUBJECT */}
       <input
         placeholder="Subject"
         value={subject}
@@ -93,26 +87,16 @@ export default function Page() {
         style={input}
       />
 
-      {/* INVOICE + DATE */}
       <div style={{ display: "flex", gap: 8 }}>
-        <input
-          value={invoice}
-          onChange={(e) => setInvoice(e.target.value)}
-          style={{ ...input, flex: 1 }}
-        />
-        <input
-          type="date"
-          onChange={(e) => setDate(e.target.value)}
-          style={{ ...input, flex: 1 }}
-        />
+        <input value={invoice} onChange={(e) => setInvoice(e.target.value)} style={input}/>
+        <input type="date" onChange={(e) => setDate(e.target.value)} style={input}/>
       </div>
 
-      {/* TASKS */}
       <h4>Tasks</h4>
 
       {tasks.map((t, i) => (
         <div key={i} style={card}>
-          
+
           <input
             placeholder="Task description"
             value={t.name}
@@ -120,16 +104,32 @@ export default function Page() {
             style={input}
           />
 
+          {/* MODE */}
           <select
             value={t.mode}
             onChange={(e) => updateTask(i, "mode", e.target.value)}
             style={input}
           >
             <option value="qty">Qty × Rate</option>
+            <option value="rate">Rate Only</option>
             <option value="direct">Direct Amount</option>
           </select>
 
-          {t.mode === "qty" ? (
+          {/* UNIT DROPDOWN */}
+          {t.mode === "qty" && (
+            <select
+              value={t.unit}
+              onChange={(e) => updateTask(i, "unit", e.target.value)}
+              style={input}
+            >
+              <option value="Sqft">Sqft</option>
+              <option value="Nos">Nos</option>
+              <option value="RFT">RFT</option>
+            </select>
+          )}
+
+          {/* INPUTS */}
+          {t.mode === "qty" && (
             <div style={{ display: "flex", gap: 6 }}>
               <input
                 type="number"
@@ -144,7 +144,18 @@ export default function Page() {
                 style={input}
               />
             </div>
-          ) : (
+          )}
+
+          {t.mode === "rate" && (
+            <input
+              type="number"
+              placeholder="Rate"
+              onChange={(e) => updateTask(i, "rate", +e.target.value)}
+              style={input}
+            />
+          )}
+
+          {t.mode === "direct" && (
             <input
               type="number"
               placeholder="Amount"
@@ -161,12 +172,11 @@ export default function Page() {
 
       <button onClick={addTask} style={addBtn}>+ Add Task</button>
 
-      {/* SUMMARY */}
       <div style={summary}>
         <div>Subtotal: ₹ {subtotal}</div>
         <div>SGST (9%): ₹ {sgst.toFixed(0)}</div>
         <div>CGST (9%): ₹ {cgst.toFixed(0)}</div>
-        <div style={{ fontWeight: "bold" }}>Total: ₹ {total.toFixed(0)}</div>
+        <div><b>Total: ₹ {total.toFixed(0)}</b></div>
       </div>
 
       <button onClick={generatePDF} style={mainBtn}>
