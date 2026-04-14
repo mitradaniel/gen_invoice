@@ -2,7 +2,7 @@ export default function Page() {
   return (
     <div style={{ padding: 20 }}>
       <h1>Invoice Generator</h1>
-      <p>Your app is working 🚀</p>
+      <p>App is live 🚀</p>
     </div>
   );
 }
