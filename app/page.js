@@ -1,264 +1,184 @@
-"use client";
-import { useState } from "react";
+import { PDFDocument, StandardFonts } from "pdf-lib";
+import fs from "fs";
+import path from "path";
 
-export default function Page() {
-  const [tasks, setTasks] = useState([
-    { name: "", qty: 0, rate: 0, amount: 0, unit: "Nos", mode: "qty" }
-  ]);
+export async function POST(req) {
+  try {
+    const body = await req.json();
 
-  const [subject, setSubject] = useState("");
-  const [invoice, setInvoice] = useState("2026/27/001");
-  const [date, setDate] = useState("");
-  const [to, setTo] = useState("");
+    const {
+      tasks = [],
+      subject = "",
+      invoice = "",
+      date = "",
+      to = "",
+      subtotal = 0,
+      sgst = 0,
+      cgst = 0,
+      total = 0
+    } = body;
 
-  const addTask = () => {
-    setTasks([
-      ...tasks,
-      { name: "", qty: 0, rate: 0, amount: 0, unit: "Nos", mode: "qty" }
-    ]);
-  };
+    // ===== LOAD TEMPLATE =====
+    const filePath = path.join(process.cwd(), "public", "Invoice_Template.pdf");
+    const existingPdfBytes = fs.readFileSync(filePath);
 
-  const updateTask = (i, field, value) => {
-    const updated = [...tasks];
-    updated[i][field] = value;
-    setTasks(updated);
-  };
+    const pdfDoc = await PDFDocument.load(existingPdfBytes);
+    const page = pdfDoc.getPages()[0];
 
-  const getTotal = (t) => {
-    if (t.mode === "qty") return (t.qty || 0) * (t.rate || 0);
-    if (t.mode === "rate") return t.rate || 0;
-    return t.amount || 0;
-  };
+    const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+    const bold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
 
-  const subtotal = tasks.reduce((s, t) => s + getTotal(t), 0);
-  const sgst = subtotal * 0.09;
-  const cgst = subtotal * 0.09;
-  const total = subtotal + sgst + cgst;
+    // ===== TO ADDRESS =====
+    let yTo = 700;
 
-  const generatePDF = async () => {
-    const res = await fetch("/api/generate", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        to,
-        tasks,
-        subject,
-        invoice,
-        date,
-        subtotal,
-        sgst,
-        cgst,
-        total
-      })
+    page.drawText("TO,", {
+      x: 50,
+      y: yTo,
+      size: 11,
+      font
     });
 
-    if (!res.ok) {
-      alert("PDF generation failed");
-      return;
-    }
+    yTo -= 16;
 
-    const blob = await res.blob();
-    const url = window.URL.createObjectURL(blob);
+    const addressLines = (to || "").split("\n");
 
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${invoice}_${subject}.pdf`;
-    a.click();
-  };
+    addressLines.forEach(line => {
+      if (line.trim()) {
+        page.drawText(line, {
+          x: 50,
+          y: yTo,
+          size: 11,
+          font
+        });
+        yTo -= 14;
+      }
+    });
 
-  return (
-    <div style={{ maxWidth: 480, margin: "auto", padding: 15 }}>
+    // ===== HEADER =====
+    page.drawText(date, {
+      x: 460,
+      y: 720,
+      size: 10,
+      font
+    });
 
-      <h2 style={{ textAlign: "center" }}>Khemraj Invoice</h2>
+    page.drawText(invoice, {
+      x: 520,
+      y: 700,
+      size: 10,
+      font
+    });
 
-      {/* TO */}
-      <textarea
-        placeholder="TO Address"
-        value={to}
-        onChange={(e) => setTo(e.target.value)}
-        style={input}
-      />
+    // ===== SUBJECT =====
+    page.drawText(subject, {
+      x: 100,
+      y: 650,
+      size: 12,
+      font: bold
+    });
 
-      <input
-        placeholder="Subject"
-        value={subject}
-        onChange={(e) => setSubject(e.target.value)}
-        style={input}
-      />
+    // ===== TASKS =====
+    let y = 600;
 
-      <div style={{ display: "flex", gap: 8 }}>
-        <input value={invoice} onChange={(e) => setInvoice(e.target.value)} style={input}/>
-        <input type="date" onChange={(e) => setDate(e.target.value)} style={input}/>
-      </div>
+    tasks.forEach((t, i) => {
 
-      <h4>Tasks</h4>
+      let totalVal = 0;
 
-      {tasks.map((t, i) => (
-        <div key={i} style={card}>
+      if (t.mode === "qty") {
+        totalVal = (t.qty || 0) * (t.rate || 0);
+      } else if (t.mode === "rate") {
+        totalVal = t.rate || 0;
+      } else {
+        totalVal = t.amount || 0;
+      }
 
-          <input
-            placeholder="Task description"
-            value={t.name}
-            onChange={(e) => updateTask(i, "name", e.target.value)}
-            style={input}
-          />
+      // Line 1: Task name
+      page.drawText(`${i + 1}. ${t.name}`, {
+        x: 50,
+        y,
+        size: 10,
+        font
+      });
 
-          {/* MODE RADIO */}
-          <div style={radioGroup}>
-            <label>
-              <input
-                type="radio"
-                value="qty"
-                checked={t.mode === "qty"}
-                onChange={(e) => updateTask(i, "mode", e.target.value)}
-              /> Qty × Rate
-            </label>
+      y -= 14;
 
-            <label>
-              <input
-                type="radio"
-                value="rate"
-                checked={t.mode === "rate"}
-                onChange={(e) => updateTask(i, "mode", e.target.value)}
-              /> Rate Only
-            </label>
+      // Line 2: Values
+      if (t.mode === "qty") {
+        page.drawText(
+          `${t.qty || 0} ${t.unit || ""} x ${t.rate || 0} = INR ${Math.round(totalVal)}`,
+          {
+            x: 70,
+            y,
+            size: 10,
+            font
+          }
+        );
+      } else if (t.mode === "rate") {
+        page.drawText(
+          `Rate = INR ${Math.round(totalVal)}`,
+          {
+            x: 70,
+            y,
+            size: 10,
+            font
+          }
+        );
+      } else {
+        page.drawText(
+          `INR ${Math.round(totalVal)}`,
+          {
+            x: 70,
+            y,
+            size: 10,
+            font
+          }
+        );
+      }
 
-            <label>
-              <input
-                type="radio"
-                value="direct"
-                checked={t.mode === "direct"}
-                onChange={(e) => updateTask(i, "mode", e.target.value)}
-              /> Direct
-            </label>
-          </div>
+      y -= 20;
+    });
 
-          {/* UNIT RADIO */}
-          {t.mode === "qty" && (
-            <div style={radioGroup}>
-              <label>
-                <input
-                  type="radio"
-                  value="Sqft"
-                  checked={t.unit === "Sqft"}
-                  onChange={(e) => updateTask(i, "unit", e.target.value)}
-                /> Sqft
-              </label>
+    // ===== TOTALS =====
+    page.drawText(`Total INR ${Math.round(subtotal)}`, {
+      x: 50,
+      y: 200,
+      size: 11,
+      font: bold
+    });
 
-              <label>
-                <input
-                  type="radio"
-                  value="Nos"
-                  checked={t.unit === "Nos"}
-                  onChange={(e) => updateTask(i, "unit", e.target.value)}
-                /> Nos
-              </label>
+    page.drawText(`SGST INR ${Math.round(sgst)}`, {
+      x: 50,
+      y: 180,
+      size: 11,
+      font
+    });
 
-              <label>
-                <input
-                  type="radio"
-                  value="RFT"
-                  checked={t.unit === "RFT"}
-                  onChange={(e) => updateTask(i, "unit", e.target.value)}
-                /> RFT
-              </label>
-            </div>
-          )}
+    page.drawText(`CGST INR ${Math.round(cgst)}`, {
+      x: 50,
+      y: 160,
+      size: 11,
+      font
+    });
 
-          {/* INPUTS */}
-          {t.mode === "qty" && (
-            <div style={{ display: "flex", gap: 6 }}>
-              <input type="number" placeholder="Qty"
-                onChange={(e) => updateTask(i, "qty", +e.target.value)}
-                style={input}
-              />
-              <input type="number" placeholder="Rate"
-                onChange={(e) => updateTask(i, "rate", +e.target.value)}
-                style={input}
-              />
-            </div>
-          )}
+    page.drawText(`Grand Total INR ${Math.round(total)}`, {
+      x: 50,
+      y: 140,
+      size: 12,
+      font: bold
+    });
 
-          {t.mode === "rate" && (
-            <input type="number" placeholder="Rate"
-              onChange={(e) => updateTask(i, "rate", +e.target.value)}
-              style={input}
-            />
-          )}
+    // ===== SAVE PDF =====
+    const pdfBytes = await pdfDoc.save();
 
-          {t.mode === "direct" && (
-            <input type="number" placeholder="Amount"
-              onChange={(e) => updateTask(i, "amount", +e.target.value)}
-              style={input}
-            />
-          )}
+    return new Response(pdfBytes, {
+      headers: {
+        "Content-Type": "application/pdf",
+        "Content-Disposition": `attachment; filename=${invoice}_${subject}.pdf`
+      }
+    });
 
-          <div style={{ textAlign: "right", fontWeight: "bold" }}>
-            ₹ {getTotal(t)}
-          </div>
-        </div>
-      ))}
-
-      <button onClick={addTask} style={addBtn}>+ Add Task</button>
-
-      <div style={summary}>
-        <div>Subtotal: ₹ {subtotal}</div>
-        <div>SGST (9%): ₹ {sgst.toFixed(0)}</div>
-        <div>CGST (9%): ₹ {cgst.toFixed(0)}</div>
-        <div><b>Total: ₹ {total.toFixed(0)}</b></div>
-      </div>
-
-      <button onClick={generatePDF} style={mainBtn}>
-        Generate Invoice
-      </button>
-    </div>
-  );
+  } catch (err) {
+    console.error("🔥 PDF ERROR:", err);
+    return new Response("PDF generation failed", { status: 500 });
+  }
 }
-
-/* STYLES */
-const input = {
-  width: "100%",
-  padding: 10,
-  marginBottom: 8,
-  borderRadius: 8,
-  border: "1px solid #ddd"
-};
-
-const card = {
-  padding: 10,
-  marginBottom: 10,
-  borderRadius: 10,
-  background: "#f9f9f9"
-};
-
-const radioGroup = {
-  display: "flex",
-  gap: 10,
-  marginBottom: 8,
-  fontSize: 13
-};
-
-const addBtn = {
-  width: "100%",
-  padding: 10,
-  marginBottom: 15,
-  background: "#eee",
-  border: "none",
-  borderRadius: 8
-};
-
-const summary = {
-  padding: 10,
-  background: "#f1f1f1",
-  borderRadius: 10,
-  marginBottom: 10
-};
-
-const mainBtn = {
-  width: "100%",
-  padding: 12,
-  background: "black",
-  color: "white",
-  border: "none",
-  borderRadius: 10
-};
