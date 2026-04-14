@@ -12,12 +12,6 @@ export async function POST(req) {
       invoice = "",
       date = "",
       to = "",
-      name: "",
-      qty: 0,
-      rate: 0,
-      amount: 0,
-      unit: "Nos",   // ✅ NEW
-      mode: "qty"    // qty | rate | direct      
       subtotal = 0,
       sgst = 0,
       cgst = 0,
@@ -34,8 +28,8 @@ export async function POST(req) {
     const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
     const bold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
 
-    // ===== TO ADDRESS (FIXED POSITION) =====
-    let yTo = 700; // 🔥 moved down so it becomes visible
+    // ===== TO ADDRESS =====
+    let yTo = 700;
 
     page.drawText("TO,", {
       x: 50,
@@ -87,12 +81,18 @@ export async function POST(req) {
     let y = 600;
 
     tasks.forEach((t, i) => {
-      const totalVal =
-        t.mode === "qty"
-          ? (t.qty || 0) * (t.rate || 0)
-          : (t.amount || 0);
 
-      // Line 1
+      let totalVal = 0;
+
+      if (t.mode === "qty") {
+        totalVal = (t.qty || 0) * (t.rate || 0);
+      } else if (t.mode === "rate") {
+        totalVal = t.rate || 0;
+      } else {
+        totalVal = t.amount || 0;
+      }
+
+      // Line 1: Task name
       page.drawText(`${i + 1}. ${t.name}`, {
         x: 50,
         y,
@@ -102,7 +102,7 @@ export async function POST(req) {
 
       y -= 14;
 
-      // Line 2
+      // Line 2: Values
       if (t.mode === "qty") {
         page.drawText(
           `${t.qty || 0} ${t.unit || ""} x ${t.rate || 0} = INR ${Math.round(totalVal)}`,
@@ -113,13 +113,26 @@ export async function POST(req) {
             font
           }
         );
+      } else if (t.mode === "rate") {
+        page.drawText(
+          `Rate = INR ${Math.round(totalVal)}`,
+          {
+            x: 70,
+            y,
+            size: 10,
+            font
+          }
+        );
       } else {
-        page.drawText(`INR ${Math.round(totalVal)}`, {
-          x: 70,
-          y,
-          size: 10,
-          font
-        });
+        page.drawText(
+          `INR ${Math.round(totalVal)}`,
+          {
+            x: 70,
+            y,
+            size: 10,
+            font
+          }
+        );
       }
 
       y -= 20;
