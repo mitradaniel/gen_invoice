@@ -9,6 +9,7 @@ export default function Page() {
   const [subject, setSubject] = useState("");
   const [invoice, setInvoice] = useState("2026/27/001");
   const [date, setDate] = useState("");
+  const [to, setTo] = useState(""); // ✅ ADDED
 
   const addTask = () => {
     setTasks([...tasks, { name: "", qty: 0, rate: 0, amount: 0, mode: "qty" }]);
@@ -34,11 +35,16 @@ export default function Page() {
       const res = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+
+        // ✅ FINAL JSON PAYLOAD
         body: JSON.stringify({
+          to,
+
           tasks,
           subject,
           invoice,
           date,
+
           subtotal,
           sgst,
           cgst,
@@ -66,24 +72,35 @@ export default function Page() {
   return (
     <div style={{ maxWidth: 480, margin: "auto", padding: 15, fontFamily: "sans-serif" }}>
       
-      {/* TITLE */}
       <h2 style={{ textAlign: "center", marginBottom: 10 }}>
         Khemraj M Rasganya Invoice
       </h2>
 
-      {/* HEADER */}
-      <input placeholder="Subject"
+      {/* ✅ TO FIELD */}
+      <textarea
+        placeholder="TO Address (each line new line)"
+        value={to}
+        onChange={(e) => setTo(e.target.value)}
+        style={input}
+      />
+
+      {/* SUBJECT */}
+      <input
+        placeholder="Subject"
         value={subject}
         onChange={(e) => setSubject(e.target.value)}
         style={input}
       />
 
+      {/* INVOICE + DATE */}
       <div style={{ display: "flex", gap: 8 }}>
-        <input value={invoice}
+        <input
+          value={invoice}
           onChange={(e) => setInvoice(e.target.value)}
           style={{ ...input, flex: 1 }}
         />
-        <input type="date"
+        <input
+          type="date"
           onChange={(e) => setDate(e.target.value)}
           style={{ ...input, flex: 1 }}
         />
@@ -102,7 +119,6 @@ export default function Page() {
             style={input}
           />
 
-          {/* MODE */}
           <select
             value={t.mode}
             onChange={(e) => updateTask(i, "mode", e.target.value)}
@@ -114,17 +130,23 @@ export default function Page() {
 
           {t.mode === "qty" ? (
             <div style={{ display: "flex", gap: 6 }}>
-              <input type="number" placeholder="Qty"
+              <input
+                type="number"
+                placeholder="Qty"
                 onChange={(e) => updateTask(i, "qty", +e.target.value)}
                 style={input}
               />
-              <input type="number" placeholder="Rate"
+              <input
+                type="number"
+                placeholder="Rate"
                 onChange={(e) => updateTask(i, "rate", +e.target.value)}
                 style={input}
               />
             </div>
           ) : (
-            <input type="number" placeholder="Amount"
+            <input
+              type="number"
+              placeholder="Amount"
               onChange={(e) => updateTask(i, "amount", +e.target.value)}
               style={input}
             />
