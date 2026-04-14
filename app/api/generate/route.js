@@ -7,19 +7,19 @@ export async function POST(req) {
     const body = await req.json();
 
     const {
-      tasks,
-      subject,
-      invoice,
-      date,
-      subtotal,
-      sgst,
-      cgst,
-      total
+      tasks = [],
+      subject = "",
+      invoice = "",
+      date = "",
+      to = "",
+      subtotal = 0,
+      sgst = 0,
+      cgst = 0,
+      total = 0
     } = body;
 
-    // ✅ LOAD TEMPLATE FROM FILE SYSTEM (BEST WAY)
+    // ===== LOAD TEMPLATE =====
     const filePath = path.join(process.cwd(), "public", "Invoice_Template.pdf");
-
     const existingPdfBytes = fs.readFileSync(filePath);
 
     const pdfDoc = await PDFDocument.load(existingPdfBytes);
@@ -28,11 +28,47 @@ export async function POST(req) {
     const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
     const bold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
 
-    // ===== HEADER =====
-    page.drawText(date || "", { x: 460, y: 720, size: 10, font });
-    page.drawText(invoice || "", { x: 520, y: 700, size: 10, font });
+    // ===== TO ADDRESS =====
+    let yTo = 750;
 
-    page.drawText(subject || "", {
+    page.drawText("TO,", {
+      x: 50,
+      y: yTo,
+      size: 11,
+      font
+    });
+
+    yTo -= 18;
+
+    const addressLines = (to || "").split("\n");
+
+    addressLines.forEach(line => {
+      page.drawText(line, {
+        x: 50,
+        y: yTo,
+        size: 11,
+        font
+      });
+      yTo -= 16;
+    });
+
+    // ===== HEADER =====
+    page.drawText(date, {
+      x: 460,
+      y: 720,
+      size: 10,
+      font
+    });
+
+    page.drawText(invoice, {
+      x: 520,
+      y: 700,
+      size: 10,
+      font
+    });
+
+    // ===== SUBJECT =====
+    page.drawText(subject, {
       x: 100,
       y: 650,
       size: 12,
@@ -48,7 +84,7 @@ export async function POST(req) {
           ? (t.qty || 0) * (t.rate || 0)
           : (t.amount || 0);
 
-      // Line 1
+      // Line 1: Task name
       page.drawText(`${i + 1}. ${t.name}`, {
         x: 50,
         y,
@@ -58,14 +94,19 @@ export async function POST(req) {
 
       y -= 14;
 
-      // Line 2
+      // Line 2: Values
       if (t.mode === "qty") {
         page.drawText(
-          `${t.qty} ${t.unit || ""} x ${t.rate} = INR ${totalVal}`,
-          { x: 70, y, size: 10, font }
+          `${t.qty} ${t.unit || ""} x ${t.rate} = INR ${Math.round(totalVal)}`,
+          {
+            x: 70,
+            y,
+            size: 10,
+            font
+          }
         );
       } else {
-        page.drawText(`INR ${totalVal}`, {
+        page.drawText(`INR ${Math.round(totalVal)}`, {
           x: 70,
           y,
           size: 10,
@@ -105,6 +146,7 @@ export async function POST(req) {
       font: bold
     });
 
+    // ===== SAVE PDF =====
     const pdfBytes = await pdfDoc.save();
 
     return new Response(pdfBytes, {
