@@ -24,7 +24,6 @@ export default function Page() {
     setTasks(updated);
   };
 
-  // 🔥 CORE CALCULATION LOGIC
   const getTotal = (t) => {
     if (t.mode === "qty") return (t.qty || 0) * (t.rate || 0);
     if (t.mode === "rate") return t.rate || 0;
@@ -104,42 +103,76 @@ export default function Page() {
             style={input}
           />
 
-          {/* MODE */}
-          <select
-            value={t.mode}
-            onChange={(e) => updateTask(i, "mode", e.target.value)}
-            style={input}
-          >
-            <option value="qty">Qty × Rate</option>
-            <option value="rate">Rate Only</option>
-            <option value="direct">Direct Amount</option>
-          </select>
+          {/* MODE RADIO */}
+          <div style={radioGroup}>
+            <label>
+              <input
+                type="radio"
+                value="qty"
+                checked={t.mode === "qty"}
+                onChange={(e) => updateTask(i, "mode", e.target.value)}
+              /> Qty × Rate
+            </label>
 
-          {/* UNIT DROPDOWN */}
+            <label>
+              <input
+                type="radio"
+                value="rate"
+                checked={t.mode === "rate"}
+                onChange={(e) => updateTask(i, "mode", e.target.value)}
+              /> Rate Only
+            </label>
+
+            <label>
+              <input
+                type="radio"
+                value="direct"
+                checked={t.mode === "direct"}
+                onChange={(e) => updateTask(i, "mode", e.target.value)}
+              /> Direct
+            </label>
+          </div>
+
+          {/* UNIT RADIO */}
           {t.mode === "qty" && (
-            <select
-              value={t.unit}
-              onChange={(e) => updateTask(i, "unit", e.target.value)}
-              style={input}
-            >
-              <option value="Sqft">Sqft</option>
-              <option value="Nos">Nos</option>
-              <option value="RFT">RFT</option>
-            </select>
+            <div style={radioGroup}>
+              <label>
+                <input
+                  type="radio"
+                  value="Sqft"
+                  checked={t.unit === "Sqft"}
+                  onChange={(e) => updateTask(i, "unit", e.target.value)}
+                /> Sqft
+              </label>
+
+              <label>
+                <input
+                  type="radio"
+                  value="Nos"
+                  checked={t.unit === "Nos"}
+                  onChange={(e) => updateTask(i, "unit", e.target.value)}
+                /> Nos
+              </label>
+
+              <label>
+                <input
+                  type="radio"
+                  value="RFT"
+                  checked={t.unit === "RFT"}
+                  onChange={(e) => updateTask(i, "unit", e.target.value)}
+                /> RFT
+              </label>
+            </div>
           )}
 
           {/* INPUTS */}
           {t.mode === "qty" && (
             <div style={{ display: "flex", gap: 6 }}>
-              <input
-                type="number"
-                placeholder="Qty"
+              <input type="number" placeholder="Qty"
                 onChange={(e) => updateTask(i, "qty", +e.target.value)}
                 style={input}
               />
-              <input
-                type="number"
-                placeholder="Rate"
+              <input type="number" placeholder="Rate"
                 onChange={(e) => updateTask(i, "rate", +e.target.value)}
                 style={input}
               />
@@ -147,18 +180,14 @@ export default function Page() {
           )}
 
           {t.mode === "rate" && (
-            <input
-              type="number"
-              placeholder="Rate"
+            <input type="number" placeholder="Rate"
               onChange={(e) => updateTask(i, "rate", +e.target.value)}
               style={input}
             />
           )}
 
           {t.mode === "direct" && (
-            <input
-              type="number"
-              placeholder="Amount"
+            <input type="number" placeholder="Amount"
               onChange={(e) => updateTask(i, "amount", +e.target.value)}
               style={input}
             />
@@ -200,6 +229,13 @@ const card = {
   marginBottom: 10,
   borderRadius: 10,
   background: "#f9f9f9"
+};
+
+const radioGroup = {
+  display: "flex",
+  gap: 10,
+  marginBottom: 8,
+  fontSize: 13
 };
 
 const addBtn = {
