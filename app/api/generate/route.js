@@ -17,9 +17,13 @@ export async function POST(req) {
   } = body;
 
   // LOAD TEMPLATE
-  const filePath = path.join(process.cwd(), "public", "Invoice_Template.pdf");
-  const existingPdfBytes = fs.readFileSync(filePath);
-
+  const baseUrl = process.env.VERCEL_URL
+    ? `https://${process.env.VERCEL_URL}`
+    : "http://localhost:3000";
+  
+  const templateRes = await fetch(`${baseUrl}/Invoice_Template.pdf`);
+  const existingPdfBytes = await templateRes.arrayBuffer();
+  
   const pdfDoc = await PDFDocument.load(existingPdfBytes);
   const page = pdfDoc.getPages()[0];
 
