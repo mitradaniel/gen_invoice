@@ -36,7 +36,7 @@ export default function Page() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
 
-        // ✅ FINAL JSON PAYLOAD
+        // ✅ UPDATED JSON
         body: JSON.stringify({
           to,
 
@@ -72,11 +72,12 @@ export default function Page() {
   return (
     <div style={{ maxWidth: 480, margin: "auto", padding: 15, fontFamily: "sans-serif" }}>
       
+      {/* TITLE */}
       <h2 style={{ textAlign: "center", marginBottom: 10 }}>
         Khemraj M Rasganya Invoice
       </h2>
 
-      {/* ✅ TO FIELD */}
+      {/* ✅ TO FIELD (NEW) */}
       <textarea
         placeholder="TO Address (each line new line)"
         value={to}
