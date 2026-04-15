@@ -82,65 +82,59 @@ export default function Page() {
 
   return (
     <div style={{
-      maxWidth:520,
-      margin:"auto",
-      padding:20,
+      maxWidth: 520,
+      margin: "auto",
+      padding: 20,
       background: dark ? "#0b0b0c" : "#f5f5f7",
       color: dark ? "#fff" : "#000"
     }}>
 
       {/* HEADER */}
-      <div style={{display:"flex", justifyContent:"space-between"}}>
+      <div style={{ display: "flex", justifyContent: "space-between" }}>
         <h2>Invoice Generator</h2>
 
-        <div style={{display:"flex", gap:10}}>
+        <div style={{ display: "flex", gap: 10 }}>
           <button onClick={generatePDF} style={topBtn}>
             {loading ? "..." : "PDF"}
           </button>
 
-          <button onClick={()=>setDark(!dark)} style={toggle}>
+          <button onClick={() => setDark(!dark)} style={toggle}>
             {dark ? "☀️" : "🌙"}
           </button>
         </div>
       </div>
 
       {/* FORM */}
-      <div style={{paddingBottom:150}}>
+      <div style={{ paddingBottom: 150 }}>
 
-        <textarea placeholder="To Address" value={to} onChange={(e)=>setTo(e.target.value)} style={input}/>
-        <input placeholder="Subject" value={subject} onChange={(e)=>setSubject(e.target.value)} style={input}/>
+        <textarea placeholder="To Address" value={to} onChange={(e) => setTo(e.target.value)} style={input} />
+        <input placeholder="Subject" value={subject} onChange={(e) => setSubject(e.target.value)} style={input} />
 
         {/* DOC TYPE */}
         <div style={segmentedContainer}>
           <div style={{
             ...sliderTwo,
-            transform: docType === "INVOICE"
-              ? "translateX(0%)"
-              : "translateX(100%)"
-          }}/>
+            transform: docType === "INVOICE" ? "translateX(0%)" : "translateX(100%)"
+          }} />
 
-          {["INVOICE","QUOTATION"].map(type => (
-            <div
-              key={type}
-              onClick={()=>setDocType(type)}
-              style={segmentItem(docType === type)}
-            >
+          {["INVOICE", "QUOTATION"].map(type => (
+            <div key={type} onClick={() => setDocType(type)} style={segmentItem(docType === type)}>
               {type}
             </div>
           ))}
         </div>
 
-        <div style={{display:"flex", gap:10}}>
-          <input value={invoice} onChange={(e)=>setInvoice(e.target.value)} style={input}/>
-          <input type="date" onChange={(e)=>setDate(e.target.value)} style={input}/>
+        <div style={{ display: "flex", gap: 10 }}>
+          <input value={invoice} onChange={(e) => setInvoice(e.target.value)} style={input} />
+          <input type="date" onChange={(e) => setDate(e.target.value)} style={input} />
         </div>
 
-        {tasks.map((t)=>(
+        {tasks.map((t) => (
           <div key={t.id} style={card}>
 
-            <div style={{display:"flex", gap:10}}>
-              <input value={t.name} onChange={(e)=>updateTask(t.id,"name",e.target.value)} style={input}/>
-              <button onClick={()=>deleteTask(t.id)}>✕</button>
+            <div style={{ display: "flex", gap: 10 }}>
+              <input value={t.name} onChange={(e) => updateTask(t.id, "name", e.target.value)} style={input} />
+              <button onClick={() => deleteTask(t.id)}>✕</button>
             </div>
 
             {/* TASK TYPE */}
@@ -148,15 +142,15 @@ export default function Page() {
               <div style={{
                 ...slider,
                 transform:
-                  t.type==="sqft"?"translateX(0%)":
-                  t.type==="nos"?"translateX(100%)":
+                  t.type === "sqft" ? "translateX(0%)" :
+                  t.type === "nos" ? "translateX(100%)" :
                   "translateX(200%)"
-              }}/>
+              }} />
 
-              {["sqft","nos","direct"].map(type=>(
+              {["sqft", "nos", "direct"].map(type => (
                 <div
                   key={type}
-                  onClick={()=>updateTask(t.id,"type",type)}
+                  onClick={() => updateTask(t.id, "type", type)}
                   style={segmentItem(t.type === type)}
                 >
                   {type === "sqft" ? "SQFT/RFT" :
@@ -166,32 +160,34 @@ export default function Page() {
               ))}
             </div>
 
-        {t.type !== "direct" && (
-          <div style={{ display: "flex", gap: 10 }}>
-            <input
-              type="number"
-              placeholder="Qty"
-              onChange={(e) => updateTask(t.id, "qty", +e.target.value)}
-              style={input}
-            />
-            <input
-              type="number"
-              placeholder="Rate"
-              onChange={(e) => updateTask(t.id, "rate", +e.target.value)}
-              style={input}
-            />
-          </div>
-        )}
-        
-        {t.type === "direct" && (
-          <input
-            type="number"
-            placeholder="Amount"
-            onChange={(e) => updateTask(t.id, "amount", +e.target.value)}
-            style={input}
-          />
-        )}
-            <div style={{textAlign:"right"}}>
+            {/* INPUTS */}
+            <div>
+              {t.type !== "direct" ? (
+                <div style={{ display: "flex", gap: 10 }}>
+                  <input
+                    type="number"
+                    placeholder="Qty"
+                    onChange={(e) => updateTask(t.id, "qty", +e.target.value)}
+                    style={input}
+                  />
+                  <input
+                    type="number"
+                    placeholder="Rate"
+                    onChange={(e) => updateTask(t.id, "rate", +e.target.value)}
+                    style={input}
+                  />
+                </div>
+              ) : (
+                <input
+                  type="number"
+                  placeholder="Amount"
+                  onChange={(e) => updateTask(t.id, "amount", +e.target.value)}
+                  style={input}
+                />
+              )}
+            </div>
+
+            <div style={{ textAlign: "right" }}>
               ₹ {getTotal(t).toLocaleString("en-IN")}
             </div>
 
@@ -203,7 +199,7 @@ export default function Page() {
         <textarea
           placeholder="Remarks"
           value={remarks}
-          onChange={(e)=>setRemarks(e.target.value)}
+          onChange={(e) => setRemarks(e.target.value)}
           style={input}
         />
 
@@ -212,7 +208,7 @@ export default function Page() {
       {/* FLOATING */}
       <div style={floating}>
         ₹ {total.toLocaleString("en-IN")}
-        <div style={{fontSize:12}}>Incl. GST</div>
+        <div style={{ fontSize: 12 }}>Incl. GST</div>
       </div>
 
     </div>
@@ -221,92 +217,34 @@ export default function Page() {
 
 /* ===== STYLES ===== */
 
-const input = {
-  width:"100%",
-  padding:12,
-  marginBottom:10,
-  borderRadius:10,
-  border:"1px solid #ddd"
-};
+const input = { width: "100%", padding: 12, marginBottom: 10, borderRadius: 10, border: "1px solid #ddd" };
+const card = { padding: 16, borderRadius: 16, background: "#fff", marginBottom: 12 };
+const addBtn = { width: "100%", padding: 14, borderRadius: 12, background: "#000", color: "#fff" };
 
-const card = {
-  padding:16,
-  borderRadius:16,
-  background:"#fff",
-  marginBottom:12
-};
+const segmentedContainer = { position: "relative", display: "flex", background: "#e5e7eb", borderRadius: 14, padding: 4, marginBottom: 12 };
 
-const addBtn = {
-  width:"100%",
-  padding:14,
-  borderRadius:12,
-  background:"#000",
-  color:"#fff",
-  fontWeight:"600"
-};
-
-const segmentedContainer = {
-  position:"relative",
-  display:"flex",
-  background:"#e5e7eb",
-  borderRadius:14,
-  padding:4,
-  marginBottom:12
-};
-
-const slider = {
-  position:"absolute",
-  top:4,
-  left:4,
-  width:"33.33%",
-  height:"calc(100% - 8px)",
-  background:"#000",
-  borderRadius:10,
-  transition:"0.25s"
-};
-
-const sliderTwo = {
-  position:"absolute",
-  top:4,
-  left:4,
-  width:"50%",
-  height:"calc(100% - 8px)",
-  background:"#000",
-  borderRadius:10,
-  transition:"0.25s"
-};
+const slider = { position: "absolute", top: 4, left: 4, width: "33.33%", height: "calc(100% - 8px)", background: "#000", borderRadius: 10, transition: "0.25s" };
+const sliderTwo = { position: "absolute", top: 4, left: 4, width: "50%", height: "calc(100% - 8px)", background: "#000", borderRadius: 10, transition: "0.25s" };
 
 const segmentItem = (active) => ({
-  flex:1,
-  textAlign:"center",
-  padding:10,
-  zIndex:1,
-  cursor:"pointer",
+  flex: 1,
+  textAlign: "center",
+  padding: 10,
+  cursor: "pointer",
+  zIndex: 1,
   color: active ? "#fff" : "#555",
-  fontWeight:500
+  fontWeight: 500
 });
 
 const floating = {
-  position:"fixed",
-  bottom:90,
-  right:20,
-  padding:"12px 16px",
-  borderRadius:18,
-  background:"rgba(255,255,255,0.6)",
-  backdropFilter:"blur(20px)",
-  boxShadow:"0 10px 30px rgba(0,0,0,0.15)"
+  position: "fixed",
+  bottom: 90,
+  right: 20,
+  padding: "12px 16px",
+  borderRadius: 18,
+  background: "rgba(255,255,255,0.6)",
+  backdropFilter: "blur(20px)"
 };
 
-const topBtn = {
-  padding:"10px 16px",
-  borderRadius:12,
-  background:"#000",
-  color:"#fff",
-  fontWeight:"600",
-  boxShadow:"0 4px 12px rgba(0,0,0,0.2)"
-};
-
-const toggle = {
-  padding:10,
-  borderRadius:10
-};
+const topBtn = { padding: "10px 16px", borderRadius: 12, background: "#000", color: "#fff" };
+const toggle = { padding: 10, borderRadius: 10 };
