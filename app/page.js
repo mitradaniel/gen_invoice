@@ -194,7 +194,7 @@ export default function Page() {
       </div>
 
       {/* FLOATING TOTAL */}
-      <div onMouseDown={startDrag} style={{...floating, transform:`translate(${pos.x}px,${pos.y}px)`}}>
+      <div onMouseDown={startDrag} style={floating}>
         ₹ {total.toLocaleString()}
         <div style={{fontSize:12,opacity:0.6}}>Incl. GST</div>
       </div>
@@ -235,4 +235,16 @@ const amount = { textAlign:"right" };
 
 const addBtn = { width:"100%", padding:14, borderRadius:12, background:"#000", color:"#fff" };
 
-const floating = { position:"fixed", top:0, left:0, padding:"14px 18px", borderRadius:25, background:"rgba(255,255,255,0.7)", backdropFilter:"blur(20px)" };
+const floating = {
+  position: "fixed",
+  bottom: 90,            // 👈 above bottom edge (safe spacing)
+  right: 20,
+  padding: "12px 16px",
+  borderRadius: 18,
+  background: "rgba(255,255,255,0.7)",
+  backdropFilter: "blur(20px)",
+  boxShadow: "0 10px 30px rgba(0,0,0,0.15)",
+  fontWeight: "600",
+  cursor: "grab",
+  zIndex: 10
+};
