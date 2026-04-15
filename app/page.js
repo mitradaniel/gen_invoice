@@ -4,7 +4,7 @@ import { useState } from "react";
 export default function Page() {
 
   const [tasks, setTasks] = useState([
-    { name: "", qty: 0, rate: 0, amount: 0, type: "sqft" }
+    { id: Date.now(), name: "", qty: 0, rate: 0, amount: 0, type: "sqft" }
   ]);
 
   const [subject, setSubject] = useState("");
@@ -12,14 +12,27 @@ export default function Page() {
   const [date, setDate] = useState("");
   const [to, setTo] = useState("");
 
+  /* =========================
+     TASK FUNCTIONS
+  ========================= */
+
   const addTask = () => {
-    setTasks([...tasks, { name: "", qty: 0, rate: 0, amount: 0, type: "sqft" }]);
+    setTasks([
+      ...tasks,
+      { id: Date.now(), name: "", qty: 0, rate: 0, amount: 0, type: "sqft" }
+    ]);
   };
 
-  const updateTask = (i, field, value) => {
-    const updated = [...tasks];
-    updated[i][field] = value;
+  const updateTask = (id, field, value) => {
+    const updated = tasks.map((t) =>
+      t.id === id ? { ...t, [field]: value } : t
+    );
     setTasks(updated);
+  };
+
+  const deleteTask = (id) => {
+    if (tasks.length === 1) return; // keep at least one row
+    setTasks(tasks.filter((t) => t.id !== id));
   };
 
   const getTotal = (t) => {
@@ -87,13 +100,20 @@ export default function Page() {
 
       <h4 style={{ marginTop: 20 }}>Tasks</h4>
 
-      {tasks.map((t, i) => (
-        <div key={i} style={card}>
+      {tasks.map((t) => (
+        <div key={t.id} style={card}>
+
+          {/* DELETE BUTTON */}
+          <div style={deleteWrapper}>
+            <span onClick={() => deleteTask(t.id)} style={deleteBtn}>
+              ✕
+            </span>
+          </div>
 
           <input
             placeholder="Task description"
             value={t.name}
-            onChange={(e) => updateTask(i, "name", e.target.value)}
+            onChange={(e) => updateTask(t.id, "name", e.target.value)}
             style={input}
           />
 
@@ -102,7 +122,7 @@ export default function Page() {
             {["sqft", "nos", "direct"].map(type => (
               <div
                 key={type}
-                onClick={() => updateTask(i, "type", type)}
+                onClick={() => updateTask(t.id, "type", type)}
                 style={{
                   ...segmentItem,
                   background: t.type === type ? "#000" : "transparent",
@@ -120,13 +140,13 @@ export default function Page() {
               <input
                 type="number"
                 placeholder={t.type === "sqft" ? "SQFT/RFT" : "Qty"}
-                onChange={(e) => updateTask(i, "qty", +e.target.value)}
+                onChange={(e) => updateTask(t.id, "qty", +e.target.value)}
                 style={input}
               />
               <input
                 type="number"
                 placeholder="Rate"
-                onChange={(e) => updateTask(i, "rate", +e.target.value)}
+                onChange={(e) => updateTask(t.id, "rate", +e.target.value)}
                 style={input}
               />
             </div>
@@ -134,7 +154,7 @@ export default function Page() {
             <input
               type="number"
               placeholder="Amount"
-              onChange={(e) => updateTask(i, "amount", +e.target.value)}
+              onChange={(e) => updateTask(t.id, "amount", +e.target.value)}
               style={input}
             />
           )}
@@ -193,12 +213,26 @@ const row = {
 };
 
 const card = {
+  position: "relative",
   padding: 15,
   borderRadius: 16,
   background: "rgba(255,255,255,0.7)",
   backdropFilter: "blur(10px)",
   marginBottom: 12,
   boxShadow: "0 4px 12px rgba(0,0,0,0.05)"
+};
+
+const deleteWrapper = {
+  position: "absolute",
+  top: 10,
+  right: 10
+};
+
+const deleteBtn = {
+  cursor: "pointer",
+  color: "#999",
+  fontSize: 16,
+  transition: "0.2s"
 };
 
 const segmented = {
