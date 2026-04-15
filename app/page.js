@@ -24,9 +24,12 @@ export default function Page() {
     dragging.current = true;
     const rect = e.currentTarget.getBoundingClientRect();
 
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+
     offset.current = {
-      x: (e.touches ? e.touches[0].clientX : e.clientX) - rect.left,
-      y: (e.touches ? e.touches[0].clientY : e.clientY) - rect.top
+      x: clientX - rect.left,
+      y: clientY - rect.top
     };
   };
 
@@ -88,34 +91,56 @@ export default function Page() {
   const cgst = subtotal * 0.09;
   const total = subtotal + sgst + cgst;
 
+  /* ===== FIXED PDF FUNCTION ===== */
+
   const generatePDF = async () => {
-    setLoading(true);
+    try {
+      setLoading(true);
 
-    const res = await fetch("/api/generate", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        to,
-        tasks,
-        subject,
-        invoice,
-        date,
-        subtotal,
-        sgst,
-        cgst,
-        total
-      })
-    });
+      const res = await fetch("/api/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          to,
+          tasks,
+          subject,
+          invoice,
+          date,
+          subtotal,
+          sgst,
+          cgst,
+          total
+        })
+      });
 
-    const blob = await res.blob();
-    const url = window.URL.createObjectURL(blob);
+      if (!res.ok) {
+        alert("API failed");
+        setLoading(false);
+        return;
+      }
 
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${invoice}_${subject}.pdf`;
-    a.click();
+      const blob = await res.blob();
 
-    setLoading(false);
+      console.log("Blob type:", blob.type);
+
+      if (blob.type !== "application/pdf") {
+        alert("Invalid PDF response");
+        setLoading(false);
+        return;
+      }
+
+      const url = window.URL.createObjectURL(blob);
+
+      /* 🔥 FIX: OPEN IN NEW TAB */
+      window.open(url);
+
+      setLoading(false);
+
+    } catch (err) {
+      console.error(err);
+      alert("Something went wrong");
+      setLoading(false);
+    }
   };
 
   return (
@@ -147,7 +172,6 @@ export default function Page() {
       {tasks.map((t) => (
         <div key={t.id} style={card}>
 
-          {/* HEADER FIXED */}
           <div style={taskHeader}>
             <input
               placeholder="Task description"
@@ -225,7 +249,7 @@ export default function Page() {
         <div style={{ fontSize: 12 }}>Incl. GST</div>
       </div>
 
-      {/* BUTTON */}
+      {/* GENERATE BUTTON */}
       <button onClick={generatePDF} style={floatingBtn}>
         {loading ? "Generating..." : "Generate PDF"}
       </button>
@@ -295,7 +319,10 @@ const segmentItem = {
   cursor: "pointer"
 };
 
-const amount = { textAlign: "right", fontWeight: "bold" };
+const amount = {
+  textAlign: "right",
+  fontWeight: "bold"
+};
 
 const addBtn = {
   width: "100%",
