@@ -124,24 +124,11 @@ export default function Page() {
     }}>
 
       {/* HEADER */}
-      <div style={{
-        position: "sticky",
-        top: 0,
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center",
-        padding: "10px 0"
-      }}>
-        <h2 style={{ margin: 0 }}>Invoice Generator</h2>
+      <div style={{ display: "flex", justifyContent: "space-between" }}>
+        <h2>Invoice Generator</h2>
 
         <div style={{ display: "flex", gap: 10 }}>
-          <button onClick={generatePDF} style={{
-            padding: "10px 14px",
-            borderRadius: 10,
-            border: "none",
-            background: "#000",
-            color: "#fff"
-          }}>
+          <button onClick={generatePDF}>
             {loading ? "..." : "PDF"}
           </button>
 
@@ -152,55 +139,52 @@ export default function Page() {
       </div>
 
       {/* FORM */}
-      <div style={{ paddingBottom: 120 }}>
 
-        <textarea placeholder="To Address" value={to} onChange={(e)=>setTo(e.target.value)} style={input}/>
-        <input placeholder="Subject" value={subject} onChange={(e)=>setSubject(e.target.value)} style={input}/>
+      <textarea placeholder="To Address" value={to} onChange={(e)=>setTo(e.target.value)} style={input}/>
+      <input placeholder="Subject" value={subject} onChange={(e)=>setSubject(e.target.value)} style={input}/>
 
-        {/* ✅ TOGGLE */}
-        <div style={{
-          display: "flex",
-          background: "#e5e7eb",
-          borderRadius: 14,
-          padding: 4,
-          marginBottom: 12
-        }}>
-          {["INVOICE", "QUOTATION"].map(type => (
-            <div
-              key={type}
-              onClick={() => setDocType(type)}
-              style={{
-                flex: 1,
-                textAlign: "center",
-                padding: 10,
-                borderRadius: 10,
-                cursor: "pointer",
-                background: docType === type ? "#000" : "transparent",
-                color: docType === type ? "#fff" : "#666"
-              }}
-            >
-              {type}
-            </div>
-          ))}
-        </div>
-
-        <div style={{ display: "flex", gap: 10 }}>
-          <input value={invoice} onChange={(e)=>setInvoice(e.target.value)} style={input}/>
-          <input type="date" onChange={(e)=>setDate(e.target.value)} style={input}/>
-        </div>
-
-        {tasks.map((t)=>(
-          <div key={t.id} style={card}>
-            <input value={t.name} onChange={(e)=>updateTask(t.id,"name",e.target.value)} style={input}/>
-            <div style={{ textAlign: "right" }}>
-              ₹ {getTotal(t).toLocaleString()}
-            </div>
+      {/* ✅ TOGGLE */}
+      <div style={{
+        display: "flex",
+        background: "#e5e7eb",
+        borderRadius: 14,
+        padding: 4,
+        marginBottom: 12
+      }}>
+        {["INVOICE", "QUOTATION"].map(type => (
+          <div
+            key={type}
+            onClick={() => setDocType(type)}
+            style={{
+              flex: 1,
+              textAlign: "center",
+              padding: 10,
+              borderRadius: 10,
+              cursor: "pointer",
+              background: docType === type ? "#000" : "transparent",
+              color: docType === type ? "#fff" : "#666"
+            }}
+          >
+            {type}
           </div>
         ))}
-
-        <button onClick={addTask}>+ Add Task</button>
-
       </div>
+
+      <div style={{ display: "flex", gap: 10 }}>
+        <input value={invoice} onChange={(e)=>setInvoice(e.target.value)} style={input}/>
+        <input type="date" onChange={(e)=>setDate(e.target.value)} style={input}/>
+      </div>
+
+      {tasks.map((t)=>(
+        <div key={t.id} style={card}>
+          <input value={t.name} onChange={(e)=>updateTask(t.id,"name",e.target.value)} style={input}/>
+          <div style={{ textAlign: "right" }}>
+            ₹ {getTotal(t).toLocaleString()}
+          </div>
+        </div>
+      ))}
+
+      <button onClick={addTask}>+ Add Task</button>
 
       {/* FLOATING */}
       <div style={{
