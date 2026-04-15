@@ -52,22 +52,20 @@ export async function POST(req) {
     tasks.forEach((t, i) => {
       let totalVal = 0;
 
-      if (t.mode === "qty") totalVal = (t.qty || 0) * (t.rate || 0);
-      else if (t.mode === "rate") totalVal = t.rate || 0;
-      else totalVal = t.amount || 0;
+      if (t.type === "direct") totalVal = t.amount || 0;
+      else totalVal = (t.qty || 0) * (t.rate || 0);
 
       page.drawText(`${i + 1}. ${t.name}`, { x: 50, y, size: 10, font });
       y -= 14;
 
-      if (t.mode === "qty") {
+      if (t.type === "direct") {
+        page.drawText(`INR ${Math.round(totalVal)}`, { x: 70, y, size: 10, font });
+      } else {
+        const unitLabel = t.type === "sqft" ? "SQFT/RFT" : "Nos";
         page.drawText(
-          `${t.qty || 0} ${t.unit || ""} x ${t.rate || 0} = INR ${Math.round(totalVal)}`,
+          `${t.qty || 0} ${unitLabel} x ${t.rate || 0} = INR ${Math.round(totalVal)}`,
           { x: 70, y, size: 10, font }
         );
-      } else if (t.mode === "rate") {
-        page.drawText(`Rate = INR ${Math.round(totalVal)}`, { x: 70, y, size: 10, font });
-      } else {
-        page.drawText(`INR ${Math.round(totalVal)}`, { x: 70, y, size: 10, font });
       }
 
       y -= 20;
