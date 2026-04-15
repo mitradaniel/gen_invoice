@@ -6,6 +6,9 @@ export default function Page() {
   const [dark, setDark] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  const [docType, setDocType] = useState("INVOICE");   // ✅ NEW
+  const [remarks, setRemarks] = useState("");          // ✅ NEW
+
   const [tasks, setTasks] = useState([
     { id: Date.now(), name: "", qty: 0, rate: 0, amount: 0, type: "sqft" }
   ]);
@@ -14,39 +17,6 @@ export default function Page() {
   const [invoice, setInvoice] = useState("2026/27/001");
   const [date, setDate] = useState("");
   const [to, setTo] = useState("");
-
-  /* ===== FLOATING ===== */
-  const [pos, setPos] = useState({ x: 260, y: 10 });
-  const dragging = useRef(false);
-  const offset = useRef({ x: 0, y: 0 });
-
-  const startDrag = (e) => {
-    dragging.current = true;
-    const rect = e.currentTarget.getBoundingClientRect();
-    offset.current = {
-      x: e.clientX - rect.left,
-      y: e.clientY - rect.top
-    };
-  };
-
-  const onMove = (e) => {
-    if (!dragging.current) return;
-    setPos({
-      x: e.clientX - offset.current.x,
-      y: e.clientY - offset.current.y
-    });
-  };
-
-  const stopDrag = () => dragging.current = false;
-
-  useEffect(() => {
-    window.addEventListener("mousemove", onMove);
-    window.addEventListener("mouseup", stopDrag);
-    return () => {
-      window.removeEventListener("mousemove", onMove);
-      window.removeEventListener("mouseup", stopDrag);
-    };
-  }, []);
 
   /* ===== LOGIC ===== */
 
@@ -96,7 +66,9 @@ export default function Page() {
           subtotal,
           sgst: gst / 2,
           cgst: gst / 2,
-          total
+          total,
+          docType,   // ✅ NEW
+          remarks    // ✅ NEW
         })
       });
 
@@ -137,7 +109,28 @@ export default function Page() {
       <div style={formWrapper}>
 
         <textarea placeholder="To Address" value={to} onChange={(e)=>setTo(e.target.value)} style={input}/>
+
         <input placeholder="Subject" value={subject} onChange={(e)=>setSubject(e.target.value)} style={input}/>
+
+        {/* ✅ DOC TYPE TOGGLE */}
+        <div style={segmentedContainer}>
+          <div style={{
+            ...slider,
+            transform: docType === "INVOICE"
+              ? "translateX(0%)"
+              : "translateX(100%)"
+          }}/>
+
+          {["INVOICE","QUOTATION"].map(type => (
+            <div
+              key={type}
+              onClick={()=>setDocType(type)}
+              style={{...segmentItem, color:docType===type?"#fff":"#666"}}
+            >
+              {type}
+            </div>
+          ))}
+        </div>
 
         <div style={row}>
           <input value={invoice} onChange={(e)=>setInvoice(e.target.value)} style={input}/>
@@ -152,7 +145,6 @@ export default function Page() {
               <button onClick={()=>deleteTask(t.id)} style={deleteBtn}>✕</button>
             </div>
 
-            {/* iOS TOGGLE */}
             <div style={segmentedContainer}>
               <div style={{
                 ...slider,
@@ -165,10 +157,8 @@ export default function Page() {
               {["sqft","nos","direct"].map(type=>(
                 <div
                   key={type}
-                  onClick={()=>{updateTask(t.id,"type",type); navigator.vibrate?.(10);}}
+                  onClick={()=>updateTask(t.id,"type",type)}
                   style={{...segmentItem, color:t.type===type?"#fff":"#666"}}
-                  onMouseDown={(e)=>e.currentTarget.style.transform="scale(0.92)"}
-                  onMouseUp={(e)=>e.currentTarget.style.transform="scale(1)"}
                 >
                   {type}
                 </div>
@@ -191,10 +181,18 @@ export default function Page() {
 
         <button onClick={addTask} style={addBtn}>+ Add Task</button>
 
+        {/* ✅ REMARKS */}
+        <textarea
+          placeholder="Remarks (optional)"
+          value={remarks}
+          onChange={(e)=>setRemarks(e.target.value)}
+          style={input}
+        />
+
       </div>
 
       {/* FLOATING TOTAL */}
-      <div onMouseDown={startDrag} style={floating}>
+      <div style={floating}>
         ₹ {total.toLocaleString()}
         <div style={{fontSize:12,opacity:0.6}}>Incl. GST</div>
       </div>
@@ -209,15 +207,11 @@ const container = { maxWidth:520, margin:"auto", padding:20 };
 
 const header = { display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 };
 
-const topBtn = { padding:"10px 14px", borderRadius:10, border:"none", background:"#000", color:"#fff", cursor:"pointer" };
+const topBtn = { padding:"10px 14px", borderRadius:10, border:"none", background:"#000", color:"#fff" };
 
-const toggle = { padding:10, borderRadius:10, border:"none", cursor:"pointer" };
+const toggle = { padding:10, borderRadius:10, border:"none" };
 
-const formWrapper = {
-  padding: 16,
-  borderRadius: 20,
-  paddingBottom: 150   // 👈 CRITICAL FIX
-};
+const formWrapper = { padding:16, borderRadius:20, paddingBottom:150 };
 
 const input = { width:"100%", padding:14, marginBottom:10, borderRadius:12, border:"1px solid #ddd" };
 
@@ -231,7 +225,7 @@ const deleteBtn = { width:32, height:32, borderRadius:"50%", border:"none" };
 
 const segmentedContainer = { position:"relative", display:"flex", background:"#e5e7eb", borderRadius:14, padding:4, marginTop:10, marginBottom:14 };
 
-const slider = { position:"absolute", top:4, left:4, width:"33.33%", height:"calc(100% - 8px)", background:"#000", borderRadius:10, transition:"transform 0.28s cubic-bezier(0.34,1.56,0.64,1)" };
+const slider = { position:"absolute", top:4, left:4, width:"50%", height:"calc(100% - 8px)", background:"#000", borderRadius:10, transition:"0.25s" };
 
 const segmentItem = { flex:1, textAlign:"center", padding:10, cursor:"pointer", zIndex:1 };
 
@@ -240,15 +234,11 @@ const amount = { textAlign:"right" };
 const addBtn = { width:"100%", padding:14, borderRadius:12, background:"#000", color:"#fff" };
 
 const floating = {
-  position: "fixed",
-  bottom: 90,            // 👈 above bottom edge (safe spacing)
-  right: 20,
-  padding: "12px 16px",
-  borderRadius: 18,
-  background: "rgba(255,255,255,0.7)",
-  backdropFilter: "blur(20px)",
-  boxShadow: "0 10px 30px rgba(0,0,0,0.15)",
-  fontWeight: "600",
-  cursor: "grab",
-  zIndex: 10
+  position:"fixed",
+  bottom:90,
+  right:20,
+  padding:"12px 16px",
+  borderRadius:18,
+  background:"rgba(255,255,255,0.7)",
+  backdropFilter:"blur(20px)"
 };
