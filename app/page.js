@@ -55,14 +55,14 @@ export async function POST(req) {
     });
 
     // ===== HEADER =====
-    page.drawText(date, {
+    page.drawText(date || "", {
       x: 460,
       y: 720,
       size: 10,
       font
     });
 
-    page.drawText(invoice, {
+    page.drawText(invoice || "", {
       x: 520,
       y: 700,
       size: 10,
@@ -70,7 +70,7 @@ export async function POST(req) {
     });
 
     // ===== SUBJECT =====
-    page.drawText(subject, {
+    page.drawText(subject || "", {
       x: 100,
       y: 650,
       size: 12,
@@ -84,16 +84,14 @@ export async function POST(req) {
 
       let totalVal = 0;
 
-      if (t.mode === "qty") {
-        totalVal = (t.qty || 0) * (t.rate || 0);
-      } else if (t.mode === "rate") {
-        totalVal = t.rate || 0;
-      } else {
+      if (t.type === "direct") {
         totalVal = t.amount || 0;
+      } else {
+        totalVal = (t.qty || 0) * (t.rate || 0);
       }
 
-      // Line 1: Task name
-      page.drawText(`${i + 1}. ${t.name}`, {
+      // Line 1
+      page.drawText(`${i + 1}. ${t.name || ""}`, {
         x: 50,
         y,
         size: 10,
@@ -102,20 +100,10 @@ export async function POST(req) {
 
       y -= 14;
 
-      // Line 2: Values
-      if (t.mode === "qty") {
+      // Line 2
+      if (t.type === "direct") {
         page.drawText(
-          `${t.qty || 0} ${t.unit || ""} x ${t.rate || 0} = INR ${Math.round(totalVal)}`,
-          {
-            x: 70,
-            y,
-            size: 10,
-            font
-          }
-        );
-      } else if (t.mode === "rate") {
-        page.drawText(
-          `Rate = INR ${Math.round(totalVal)}`,
+          `INR ${Math.round(totalVal)}`,
           {
             x: 70,
             y,
@@ -124,8 +112,10 @@ export async function POST(req) {
           }
         );
       } else {
+        const unitLabel = t.type === "sqft" ? "SQFT/RFT" : "Nos";
+
         page.drawText(
-          `INR ${Math.round(totalVal)}`,
+          `${t.qty || 0} ${unitLabel} x ${t.rate || 0} = INR ${Math.round(totalVal)}`,
           {
             x: 70,
             y,
@@ -167,7 +157,7 @@ export async function POST(req) {
       font: bold
     });
 
-    // ===== SAVE PDF =====
+    // ===== SAVE =====
     const pdfBytes = await pdfDoc.save();
 
     return new Response(pdfBytes, {
