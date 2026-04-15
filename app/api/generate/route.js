@@ -195,9 +195,7 @@ export async function POST(req) {
     /* ===== REMARKS ===== */
 
 if (remarks && remarks.trim()) {
-
   let remarkY = yTotal - 20;
-
   page.drawText("Remarks:", {
     x: 50,
     y: remarkY,
