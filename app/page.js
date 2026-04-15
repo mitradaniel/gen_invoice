@@ -16,7 +16,7 @@ export default function Page() {
   const [loading, setLoading] = useState(false);
 
   /* ===== DRAG ===== */
-  const [pos, setPos] = useState({ x: 140, y: 500 });
+  const [pos, setPos] = useState({ x: 260, y: 10 });
   const dragging = useRef(false);
   const offset = useRef({ x: 0, y: 0 });
 
