@@ -80,44 +80,42 @@ export default function Page() {
   const gst = subtotal * 0.18;
   const total = subtotal + gst;
 
-  /* ===== FIXED PDF FUNCTION ===== */
-  const generatePDF = () => {
+  /* ===== PDF ===== */
+  const generatePDF = async () => {
     try {
       setLoading(true);
 
-      const form = document.createElement("form");
-      form.method = "POST";
-      form.action = "/api/generate";
-      form.target = "_blank";
+      const res = await fetch("/api/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          to,
+          tasks,
+          subject,
+          invoice,
+          date,
+          subtotal,
+          sgst: gst / 2,
+          cgst: gst / 2,
+          total,
+          docType,
+          remarks
+        })
+      });
 
-      const data = {
-        to,
-        tasks,
-        subject,
-        invoice,
-        date,
-        subtotal,
-        sgst: gst / 2,
-        cgst: gst / 2,
-        total,
-        docType,
-        remarks
-      };
-
-      const input = document.createElement("input");
-      input.type = "hidden";
-      input.name = "data";
-      input.value = JSON.stringify(data);
-
-      form.appendChild(input);
-      document.body.appendChild(form);
-      form.submit();
-      form.remove();
-
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${invoice || "invoice"}.pdf`; // file name
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      
+      window.URL.revokeObjectURL(url);
       setLoading(false);
-
-    } catch (err) {
-      console.error(err);
+    } catch {
       alert("PDF failed");
       setLoading(false);
     }
@@ -151,8 +149,7 @@ export default function Page() {
         <textarea placeholder="To Address" value={to} onChange={(e)=>setTo(e.target.value)} style={input}/>
         <input placeholder="Subject" value={subject} onChange={(e)=>setSubject(e.target.value)} style={input}/>
         <textarea placeholder="Remarks (optional)" value={remarks} onChange={(e)=>setRemarks(e.target.value)} style={input}/>
-
-        {/* DOC TYPE */}
+        {/* INVOICE / QUOTATION */}
         <div style={segmentedContainer}>
           {["INVOICE","QUOTATION"].map(type=>(
             <div key={type} onClick={()=>setDocType(type)} style={{
@@ -185,7 +182,7 @@ export default function Page() {
               <button onClick={()=>deleteTask(t.id)} style={deleteBtn}>✕</button>
             </div>
 
-            {/* SEGMENT */}
+            {/* SEGMENTED */}
             <div style={segmentedContainer}>
               <div style={{
                 ...slider,
@@ -197,7 +194,10 @@ export default function Page() {
 
               {["sqft","nos","direct"].map(type=>(
                 <div key={type}
-                  onClick={()=>updateTask(t.id,"type",type)}
+                  onClick={()=>{
+                    updateTask(t.id,"type",type);
+                    navigator.vibrate?.(10);
+                  }}
                   style={{...segmentItem, color:t.type===type?"#fff":"#666"}}
                 >
                   {type}
