@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 
 export default function Page() {
 
@@ -12,6 +12,55 @@ export default function Page() {
   const [date, setDate] = useState("");
   const [to, setTo] = useState("");
   const [loading, setLoading] = useState(false);
+
+  /* ===== DRAG STATE ===== */
+  const [pos, setPos] = useState({ x: 140, y: 500 });
+  const dragging = useRef(false);
+  const offset = useRef({ x: 0, y: 0 });
+
+  /* ===== DRAG HANDLERS ===== */
+
+  const startDrag = (e) => {
+    dragging.current = true;
+    const rect = e.currentTarget.getBoundingClientRect();
+
+    offset.current = {
+      x: (e.touches ? e.touches[0].clientX : e.clientX) - rect.left,
+      y: (e.touches ? e.touches[0].clientY : e.clientY) - rect.top
+    };
+  };
+
+  const onMove = (e) => {
+    if (!dragging.current) return;
+
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+
+    setPos({
+      x: clientX - offset.current.x,
+      y: clientY - offset.current.y
+    });
+  };
+
+  const stopDrag = () => {
+    dragging.current = false;
+  };
+
+  useEffect(() => {
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", stopDrag);
+    window.addEventListener("touchmove", onMove);
+    window.addEventListener("touchend", stopDrag);
+
+    return () => {
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", stopDrag);
+      window.removeEventListener("touchmove", onMove);
+      window.removeEventListener("touchend", stopDrag);
+    };
+  }, []);
+
+  /* ===== TASK LOGIC ===== */
 
   const addTask = () => {
     setTasks([
@@ -98,17 +147,19 @@ export default function Page() {
       {tasks.map((t) => (
         <div key={t.id} style={card}>
 
-          {/* DELETE BUTTON FIXED */}
-          <button onClick={() => deleteTask(t.id)} style={deleteBtn}>
-            ✕
-          </button>
+          {/* HEADER FIXED */}
+          <div style={taskHeader}>
+            <input
+              placeholder="Task description"
+              value={t.name}
+              onChange={(e) => updateTask(t.id, "name", e.target.value)}
+              style={{ ...input, marginBottom: 0 }}
+            />
 
-          <input
-            placeholder="Task description"
-            value={t.name}
-            onChange={(e) => updateTask(t.id, "name", e.target.value)}
-            style={input}
-          />
+            <button onClick={() => deleteTask(t.id)} style={deleteBtn}>
+              ✕
+            </button>
+          </div>
 
           <div style={segmented}>
             {["sqft", "nos", "direct"].map(type => (
@@ -117,7 +168,7 @@ export default function Page() {
                 onClick={() => updateTask(t.id, "type", type)}
                 style={{
                   ...segmentItem,
-                  background: t.type === type ? "#000",
+                  background: t.type === type ? "#000" : "transparent",
                   color: t.type === type ? "#fff" : "#555"
                 }}
               >
@@ -161,21 +212,21 @@ export default function Page() {
         + Add Task
       </button>
 
-      {/* SAFE SPACING (IMPORTANT FIX) */}
-      <div style={{ height: 140 }} />
-
-      {/* STICKY TOTAL (FIXED POSITION) */}
-      <div style={stickySummary}>
+      {/* DRAGGABLE TOTAL */}
+      <div
+        onMouseDown={startDrag}
+        onTouchStart={startDrag}
+        style={{
+          ...floatingTotal,
+          transform: `translate(${pos.x}px, ${pos.y}px)`
+        }}
+      >
         ₹ {total.toFixed(0)}
         <div style={{ fontSize: 12 }}>Incl. GST</div>
       </div>
 
-      {/* FLOATING BUTTON */}
-      <button
-        onClick={generatePDF}
-        disabled={loading}
-        style={floatingBtn}
-      >
+      {/* BUTTON */}
+      <button onClick={generatePDF} style={floatingBtn}>
         {loading ? "Generating..." : "Generate PDF"}
       </button>
 
@@ -192,10 +243,7 @@ const container = {
   fontFamily: "sans-serif"
 };
 
-const title = {
-  textAlign: "center",
-  marginBottom: 20
-};
+const title = { textAlign: "center", marginBottom: 20 };
 
 const input = {
   width: "100%",
@@ -206,13 +254,9 @@ const input = {
   background: "#fafafa"
 };
 
-const row = {
-  display: "flex",
-  gap: 10
-};
+const row = { display: "flex", gap: 10 };
 
 const card = {
-  position: "relative",
   padding: 15,
   borderRadius: 16,
   background: "#fff",
@@ -220,16 +264,20 @@ const card = {
   boxShadow: "0 4px 12px rgba(0,0,0,0.05)"
 };
 
-/* DELETE FIXED */
+const taskHeader = {
+  display: "flex",
+  gap: 10,
+  alignItems: "center",
+  marginBottom: 10
+};
+
 const deleteBtn = {
-  position: "absolute",
-  top: 10,
-  right: 10,
+  width: 36,
+  height: 36,
+  borderRadius: "50%",
   border: "none",
-  background: "transparent",
-  cursor: "pointer",
-  fontSize: 16,
-  color: "#999"
+  background: "#f1f1f1",
+  cursor: "pointer"
 };
 
 const segmented = {
@@ -247,10 +295,7 @@ const segmentItem = {
   cursor: "pointer"
 };
 
-const amount = {
-  textAlign: "right",
-  fontWeight: "bold"
-};
+const amount = { textAlign: "right", fontWeight: "bold" };
 
 const addBtn = {
   width: "100%",
@@ -262,18 +307,17 @@ const addBtn = {
   marginBottom: 20
 };
 
-/* FIXED POSITIONS */
-const stickySummary = {
+const floatingTotal = {
   position: "fixed",
-  bottom: 80,
-  left: "50%",
-  transform: "translateX(-50%)",
+  top: 0,
+  left: 0,
   background: "#fff",
-  padding: "10px 20px",
+  padding: "12px 16px",
   borderRadius: 20,
-  boxShadow: "0 6px 16px rgba(0,0,0,0.1)",
-  textAlign: "center",
-  zIndex: 10
+  boxShadow: "0 8px 20px rgba(0,0,0,0.15)",
+  cursor: "grab",
+  zIndex: 20,
+  fontWeight: "bold"
 };
 
 const floatingBtn = {
@@ -287,7 +331,5 @@ const floatingBtn = {
   borderRadius: 14,
   background: "#000",
   color: "#fff",
-  border: "none",
-  fontSize: 16,
-  zIndex: 10
+  border: "none"
 };
