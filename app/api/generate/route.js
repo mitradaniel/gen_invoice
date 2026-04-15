@@ -66,14 +66,14 @@ export async function POST(req) {
     /* ================= HEADER RIGHT ================= */
     page.drawText(`Date: ${date}`, {
       x: width - 180,
-      y: 760,
+      y: 750,
       size: 10,
       font
     });
 
     page.drawText(`Invoice: ${invoice}`, {
       x: width - 180,
-      y: 740,
+      y: 730,
       size: 10,
       font
     });
@@ -81,7 +81,7 @@ export async function POST(req) {
     /* ================= SUBJECT (ALIGN WITH HEADER) ================= */
     page.drawText(`Subject: ${subject}`, {
       x: 50,
-      y: 760,
+      y: 730,
       size: 12,
       font: bold
     });
