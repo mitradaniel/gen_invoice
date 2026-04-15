@@ -12,22 +12,16 @@ export default function Page() {
   const [date, setDate] = useState("");
   const [to, setTo] = useState("");
 
-  // ===== ADD TASK =====
   const addTask = () => {
-    setTasks([
-      ...tasks,
-      { name: "", qty: 0, rate: 0, amount: 0, type: "sqft" }
-    ]);
+    setTasks([...tasks, { name: "", qty: 0, rate: 0, amount: 0, type: "sqft" }]);
   };
 
-  // ===== UPDATE TASK =====
   const updateTask = (i, field, value) => {
     const updated = [...tasks];
     updated[i][field] = value;
     setTasks(updated);
   };
 
-  // ===== CALCULATE TOTAL =====
   const getTotal = (t) => {
     if (t.type === "direct") return t.amount || 0;
     return (t.qty || 0) * (t.rate || 0);
@@ -38,51 +32,40 @@ export default function Page() {
   const cgst = subtotal * 0.09;
   const total = subtotal + sgst + cgst;
 
-  // ===== GENERATE PDF =====
   const generatePDF = async () => {
-    try {
-      const res = await fetch("/api/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          to,
-          tasks,
-          subject,
-          invoice,
-          date,
-          subtotal,
-          sgst,
-          cgst,
-          total
-        })
-      });
+    const res = await fetch("/api/generate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        to,
+        tasks,
+        subject,
+        invoice,
+        date,
+        subtotal,
+        sgst,
+        cgst,
+        total
+      })
+    });
 
-      if (!res.ok) {
-        alert("PDF generation failed");
-        return;
-      }
+    const blob = await res.blob();
+    const url = window.URL.createObjectURL(blob);
 
-      const blob = await res.blob();
-      const url = window.URL.createObjectURL(blob);
-
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `${invoice}_${subject}.pdf`;
-      a.click();
-
-    } catch (err) {
-      alert("Error generating PDF");
-    }
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${invoice}_${subject}.pdf`;
+    a.click();
   };
 
   return (
     <div style={container}>
 
-      <h2 style={title}>Khemraj M Rasganya Invoice</h2>
+      <h2 style={title}>Invoice Generator</h2>
 
-      {/* TO ADDRESS */}
+      {/* TO */}
       <textarea
-        placeholder="To Address (multi-line)"
+        placeholder="To Address"
         value={to}
         onChange={(e) => setTo(e.target.value)}
         style={input}
@@ -97,22 +80,13 @@ export default function Page() {
       />
 
       {/* HEADER */}
-      <div style={{ display: "flex", gap: 8 }}>
-        <input
-          value={invoice}
-          onChange={(e) => setInvoice(e.target.value)}
-          style={{ ...input, flex: 1 }}
-        />
-        <input
-          type="date"
-          onChange={(e) => setDate(e.target.value)}
-          style={{ ...input, flex: 1 }}
-        />
+      <div style={row}>
+        <input value={invoice} onChange={(e) => setInvoice(e.target.value)} style={input}/>
+        <input type="date" onChange={(e) => setDate(e.target.value)} style={input}/>
       </div>
 
-      <h4>Tasks</h4>
+      <h4 style={{ marginTop: 20 }}>Tasks</h4>
 
-      {/* TASKS */}
       {tasks.map((t, i) => (
         <div key={i} style={card}>
 
@@ -123,45 +97,29 @@ export default function Page() {
             style={input}
           />
 
-          {/* SINGLE RADIO */}
-          <div style={radioGroup}>
-            <label style={radioItem}>
-              <input
-                type="radio"
-                value="sqft"
-                checked={t.type === "sqft"}
-                onChange={(e) => updateTask(i, "type", e.target.value)}
-              />
-              SQFT / RFT
-            </label>
-
-            <label style={radioItem}>
-              <input
-                type="radio"
-                value="nos"
-                checked={t.type === "nos"}
-                onChange={(e) => updateTask(i, "type", e.target.value)}
-              />
-              Nos
-            </label>
-
-            <label style={radioItem}>
-              <input
-                type="radio"
-                value="direct"
-                checked={t.type === "direct"}
-                onChange={(e) => updateTask(i, "type", e.target.value)}
-              />
-              Direct
-            </label>
+          {/* SEGMENTED CONTROL */}
+          <div style={segmented}>
+            {["sqft", "nos", "direct"].map(type => (
+              <div
+                key={type}
+                onClick={() => updateTask(i, "type", type)}
+                style={{
+                  ...segmentItem,
+                  background: t.type === type ? "#000" : "transparent",
+                  color: t.type === type ? "#fff" : "#555"
+                }}
+              >
+                {type === "sqft" ? "SQFT/RFT" : type === "nos" ? "Nos" : "Direct"}
+              </div>
+            ))}
           </div>
 
-          {/* DYNAMIC INPUTS */}
-          {t.type !== "direct" && (
-            <div style={{ display: "flex", gap: 8 }}>
+          {/* INPUTS */}
+          {t.type !== "direct" ? (
+            <div style={row}>
               <input
                 type="number"
-                placeholder={t.type === "sqft" ? "SQFT / RFT" : "Qty"}
+                placeholder={t.type === "sqft" ? "SQFT/RFT" : "Qty"}
                 onChange={(e) => updateTask(i, "qty", +e.target.value)}
                 style={input}
               />
@@ -172,9 +130,7 @@ export default function Page() {
                 style={input}
               />
             </div>
-          )}
-
-          {t.type === "direct" && (
+          ) : (
             <input
               type="number"
               placeholder="Amount"
@@ -183,97 +139,118 @@ export default function Page() {
             />
           )}
 
-          <div style={{ textAlign: "right", fontWeight: "bold" }}>
-            ₹ {getTotal(t)}
-          </div>
+          <div style={amount}>₹ {getTotal(t)}</div>
 
         </div>
       ))}
 
-      <button onClick={addTask} style={addBtn}>
-        + Add Task
-      </button>
+      <button onClick={addTask} style={addBtn}>+ Add Task</button>
 
       {/* SUMMARY */}
       <div style={summary}>
-        <div>Subtotal: ₹ {subtotal}</div>
-        <div>SGST (9%): ₹ {sgst.toFixed(0)}</div>
-        <div>CGST (9%): ₹ {cgst.toFixed(0)}</div>
-        <div style={{ fontWeight: "bold" }}>
-          Total: ₹ {total.toFixed(0)}
-        </div>
+        <div>Subtotal ₹ {subtotal}</div>
+        <div>SGST ₹ {sgst.toFixed(0)}</div>
+        <div>CGST ₹ {cgst.toFixed(0)}</div>
+        <div style={{ fontWeight: "bold" }}>Total ₹ {total.toFixed(0)}</div>
       </div>
 
-      <button onClick={generatePDF} style={mainBtn}>
-        Generate Invoice
+      {/* FLOATING BUTTON */}
+      <button onClick={generatePDF} style={floatingBtn}>
+        Generate PDF
       </button>
 
     </div>
   );
 }
 
-/* ===== STYLES ===== */
+/* ===== PREMIUM STYLES ===== */
 
 const container = {
   maxWidth: 480,
   margin: "auto",
-  padding: 15,
-  fontFamily: "sans-serif"
+  padding: 20,
+  fontFamily: "-apple-system, BlinkMacSystemFont, sans-serif"
 };
 
 const title = {
   textAlign: "center",
-  marginBottom: 15
+  marginBottom: 20,
+  fontWeight: 600
 };
 
 const input = {
   width: "100%",
-  padding: 10,
-  marginBottom: 8,
-  borderRadius: 8,
-  border: "1px solid #ddd"
+  padding: 12,
+  marginBottom: 10,
+  borderRadius: 12,
+  border: "1px solid #eee",
+  background: "#fafafa"
+};
+
+const row = {
+  display: "flex",
+  gap: 10
 };
 
 const card = {
-  padding: 10,
-  marginBottom: 10,
-  borderRadius: 10,
-  background: "#f9f9f9"
+  padding: 15,
+  borderRadius: 16,
+  background: "rgba(255,255,255,0.7)",
+  backdropFilter: "blur(10px)",
+  marginBottom: 12,
+  boxShadow: "0 4px 12px rgba(0,0,0,0.05)"
 };
 
-const radioGroup = {
+const segmented = {
   display: "flex",
-  gap: 12,
+  borderRadius: 12,
+  background: "#f1f1f1",
+  overflow: "hidden",
   marginBottom: 10
 };
 
-const radioItem = {
-  display: "flex",
-  alignItems: "center",
-  gap: 4
+const segmentItem = {
+  flex: 1,
+  textAlign: "center",
+  padding: 8,
+  cursor: "pointer",
+  fontSize: 13
+};
+
+const amount = {
+  textAlign: "right",
+  fontWeight: "bold",
+  marginTop: 5
 };
 
 const addBtn = {
   width: "100%",
-  padding: 10,
-  marginBottom: 15,
+  padding: 12,
+  borderRadius: 12,
   background: "#eee",
   border: "none",
-  borderRadius: 8
+  marginBottom: 15
 };
 
 const summary = {
-  padding: 10,
-  background: "#f1f1f1",
-  borderRadius: 10,
-  marginBottom: 10
+  padding: 15,
+  borderRadius: 16,
+  background: "#f7f7f7",
+  marginBottom: 80
 };
 
-const mainBtn = {
-  width: "100%",
-  padding: 12,
-  background: "black",
-  color: "white",
+const floatingBtn = {
+  position: "fixed",
+  bottom: 20,
+  left: "50%",
+  transform: "translateX(-50%)",
+  width: "90%",
+  maxWidth: 400,
+  padding: 14,
+  borderRadius: 14,
+  background: "#000",
+  color: "#fff",
   border: "none",
-  borderRadius: 10
+  fontSize: 16,
+  boxShadow: "0 8px 20px rgba(0,0,0,0.2)"
 };
