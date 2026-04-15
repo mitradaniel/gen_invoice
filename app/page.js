@@ -145,14 +145,15 @@ export default function Page() {
               <button onClick={()=>deleteTask(t.id)} style={deleteBtn}>✕</button>
             </div>
 
-            <div style={segmentedContainer}>
-              <div style={{
-                ...slider,
-                transform:
-                  t.type==="sqft"?"translateX(0%)":
-                  t.type==="nos"?"translateX(100%)":
-                  "translateX(200%)"
-              }}/>
+            <div style={{
+              ...slider,
+              transform:
+                t.type === "sqft"
+                  ? "translateX(0%)"
+                  : t.type === "nos"
+                  ? "translateX(100%)"
+                  : "translateX(200%)"
+            }}/>
 
               {["sqft","nos","direct"].map(type=>(
                 <div
@@ -229,7 +230,18 @@ const slider = {
   position: "absolute",
   top: 4,
   left: 4,
-  width: "50%",   // FIXED
+  width: "33.33%",   // FIXED
+  height: "calc(100% - 8px)",
+  background: "#000",
+  borderRadius: 10,
+  transition: "transform 0.25s ease"
+};
+
+const sliderTwo = {
+  position: "absolute",
+  top: 4,
+  left: 4,
+  width: "50%",   // ✅ for 2 tabs
   height: "calc(100% - 8px)",
   background: "#000",
   borderRadius: 10,
