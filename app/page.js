@@ -166,15 +166,31 @@ export default function Page() {
               ))}
             </div>
 
-            {t.type!=="direct"?(
-              <div style={{display:"flex", gap:10}}>
-                <input type="number" placeholder="Qty" onChange={(e)=>updateTask(t.id,"qty",+e.target.value)} style={input}/>
-                <input type="number" placeholder="Rate" onChange={(e)=>updateTask(t.id,"rate",+e.target.value)} style={input}/>
-              </div>
-            ):(
-              <input type="number" placeholder="Amount" onChange={(e)=>updateTask(t.id,"amount",+e.target.value)} style={input}/>
-            )}
-
+        {t.type !== "direct" && (
+          <div style={{ display: "flex", gap: 10 }}>
+            <input
+              type="number"
+              placeholder="Qty"
+              onChange={(e) => updateTask(t.id, "qty", +e.target.value)}
+              style={input}
+            />
+            <input
+              type="number"
+              placeholder="Rate"
+              onChange={(e) => updateTask(t.id, "rate", +e.target.value)}
+              style={input}
+            />
+          </div>
+        )}
+        
+        {t.type === "direct" && (
+          <input
+            type="number"
+            placeholder="Amount"
+            onChange={(e) => updateTask(t.id, "amount", +e.target.value)}
+            style={input}
+          />
+        )}
             <div style={{textAlign:"right"}}>
               ₹ {getTotal(t).toLocaleString("en-IN")}
             </div>
