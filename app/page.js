@@ -116,17 +116,17 @@ export default function Page() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          to,
-          tasks,
-          subject,
-          invoice,
-          date,
-          subtotal,
-          sgst: gst / 2,
-          cgst: gst / 2,
-          total,
-          docType // ✅ ADDED
-        })
+        to,
+        tasks,
+        subject,
+        invoice,
+        date,
+        subtotal,
+        sgst: gst / 2,
+        cgst: gst / 2,
+        total,
+        docType   // ✅ ADD THIS ONLY
+      })
       });
 
       const blob = await res.blob();
