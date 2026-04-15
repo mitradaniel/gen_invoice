@@ -161,19 +161,32 @@ export default function Page() {
               <button onClick={() => deleteTask(t.id)} style={deleteBtn}>✕</button>
             </div>
 
-            <div style={segmented}>
-              {["sqft","nos","direct"].map(type => (
-                <div key={type}
-                  onClick={() => updateTask(t.id,"type",type)}
-                  style={{
-                    ...segmentItem,
-                    background: t.type === type ? "#000" : "transparent",
-                    color: t.type === type ? "#fff" : "#777"
-                  }}>
-                  {type}
-                </div>
-              ))}
-            </div>
+<div style={segmentedContainer}>
+  <div
+    style={{
+      ...slider,
+      transform:
+        t.type === "sqft"
+          ? "translateX(0%)"
+          : t.type === "nos"
+          ? "translateX(100%)"
+          : "translateX(200%)"
+    }}
+  />
+
+  {["sqft","nos","direct"].map(type => (
+    <div
+      key={type}
+      onClick={() => updateTask(t.id,"type",type)}
+      style={{
+        ...segmentItem,
+        color: t.type === type ? "#fff" : "#666"
+      }}
+    >
+      {type === "sqft" ? "SQFT/RFT" : type === "nos" ? "Nos" : "Direct"}
+    </div>
+  ))}
+</div>
 
             {t.type !== "direct" ? (
               <div style={row}>
