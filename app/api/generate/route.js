@@ -14,6 +14,11 @@ const formatDate = (inputDate) => {
   return `${day}-${month}-${year}`;
 };
 
+/* ===== ₹ FORMAT (INDIA) ===== */
+const formatINR = (num) => {
+  return new Intl.NumberFormat("en-IN").format(Math.round(num || 0));
+};
+
 export const runtime = "nodejs";
 
 export async function POST(req) {
@@ -29,7 +34,9 @@ export async function POST(req) {
       subtotal = 0,
       sgst = 0,
       cgst = 0,
-      total = 0
+      total = 0,
+      docType = "INVOICE",   // ✅ NEW
+      remarks = ""           // ✅ NEW
     } = body;
 
     const filePath = path.join(process.cwd(), "public", "Invoice_Template.pdf");
@@ -83,21 +90,20 @@ export async function POST(req) {
       font: bold
     });
 
-    page.drawText(`Invoice: ${invoice}`, {
+    page.drawText(`${docType === "QUOTATION" ? "Quote" : "Invoice"}: ${invoice}`, {
       x: width - 150,
       y: 650,
       size: 10,
       font: bold
     });
 
-    /* ===== CENTER TITLE ===== */
-    const text = "INVOICE";
+    /* ===== CENTER TITLE (DYNAMIC) ===== */
+    const title = docType || "INVOICE";
     const fontSize = 25;
-    const textWidth = bold.widthOfTextAtSize(text, fontSize);
-    const xCenter = (width - textWidth) / 2;
+    const textWidth = bold.widthOfTextAtSize(title, fontSize);
 
-    page.drawText(text, {
-      x: xCenter,
+    page.drawText(title, {
+      x: (width - textWidth) / 2,
       y: 650,
       size: fontSize,
       font: bold
@@ -129,16 +135,15 @@ export async function POST(req) {
 
     tasks.forEach((t, i) => {
 
-      /* ===== FIXED CALCULATION ===== */
       let totalVal = 0;
 
       if (t.type === "sqft" || t.type === "nos") {
         totalVal = (t.qty || 0) * (t.rate || 0);
-      } else if (t.type === "direct") {
+      } else {
         totalVal = t.amount || 0;
       }
 
-      /* ===== TASK TITLE ===== */
+      /* TASK TITLE */
       y = drawWrappedText(
         `${i + 1}. ${t.name || ""}`,
         50,
@@ -149,17 +154,17 @@ export async function POST(req) {
         10
       );
 
-      /* ===== VALUE TEXT ===== */
+      /* VALUE TEXT */
       let valueText = "";
 
       if (t.type === "sqft") {
-        valueText = `${t.qty || 0} SQFT × ${t.rate || 0} = INR ${Math.round(totalVal)}`;
+        valueText = `${t.qty || 0} SQFT × ${formatINR(t.rate)} = ₹ ${formatINR(totalVal)}`;
       } 
       else if (t.type === "nos") {
-        valueText = `${t.qty || 0} Nos × ${t.rate || 0} = INR ${Math.round(totalVal)}`;
+        valueText = `${t.qty || 0} Nos × ${formatINR(t.rate)} = ₹ ${formatINR(totalVal)}`;
       } 
       else {
-        valueText = `INR ${Math.round(totalVal)}`;
+        valueText = `₹ ${formatINR(totalVal)}`;
       }
 
       y = drawWrappedText(
@@ -175,11 +180,37 @@ export async function POST(req) {
       y -= 10;
     });
 
-    /* ===== TOTALS (LEFT) ===== */
-    let yTotal = 200;
+    /* ===== REMARKS (CORRECT POSITION) ===== */
+    if (remarks && remarks.trim()) {
+      y -= 10;
+
+      page.drawText("Remarks:", {
+        x: 50,
+        y,
+        size: 11,
+        font: bold
+      });
+
+      y -= 14;
+
+      y = drawWrappedText(
+        remarks,
+        50,
+        y,
+        450,
+        14,
+        font,
+        10
+      );
+
+      y -= 10;
+    }
+
+    /* ===== TOTALS ===== */
+    let yTotal = y - 20;
 
     const drawLeft = (label, value, boldText = false) => {
-      page.drawText(`${label} INR ${Math.round(value)}`, {
+      page.drawText(`${label} ₹ ${formatINR(value)}`, {
         x: 50,
         y: yTotal,
         size: boldText ? 12 : 11,
@@ -200,7 +231,7 @@ export async function POST(req) {
     return new Response(pdfBytes, {
       headers: {
         "Content-Type": "application/pdf",
-        "Content-Disposition": `attachment; filename=${invoice}_${subject}.pdf`
+        "Content-Disposition": `attachment; filename=${invoice}.pdf`
       }
     });
 
