@@ -5,7 +5,6 @@ export default function Page() {
 
   const [dark, setDark] = useState(false);
   const [loading, setLoading] = useState(false);
-
   const [docType, setDocType] = useState("INVOICE");
 
   const [tasks, setTasks] = useState([
@@ -17,6 +16,7 @@ export default function Page() {
   const [date, setDate] = useState("");
   const [to, setTo] = useState("");
 
+  /* ===== FLOATING ===== */
   const [pos, setPos] = useState({ x: 260, y: 10 });
   const dragging = useRef(false);
   const offset = useRef({ x: 0, y: 0 });
@@ -49,6 +49,8 @@ export default function Page() {
     };
   }, []);
 
+  /* ===== LOGIC ===== */
+
   const updateTask = (id, field, value) => {
     setTasks(tasks.map(t => t.id === id ? { ...t, [field]: value } : t));
   };
@@ -78,6 +80,7 @@ export default function Page() {
   const gst = subtotal * 0.18;
   const total = subtotal + gst;
 
+  /* ===== PDF ===== */
   const generatePDF = async () => {
     try {
       setLoading(true);
@@ -117,6 +120,7 @@ export default function Page() {
       color: dark ? "#fff" : "#000"
     }}>
 
+      {/* HEADER */}
       <div style={header}>
         <h2 style={{ margin: 0 }}>Invoice Generator</h2>
 
@@ -131,10 +135,13 @@ export default function Page() {
         </div>
       </div>
 
+      {/* FORM */}
       <div style={formWrapper}>
+
         <textarea placeholder="To Address" value={to} onChange={(e)=>setTo(e.target.value)} style={input}/>
         <input placeholder="Subject" value={subject} onChange={(e)=>setSubject(e.target.value)} style={input}/>
 
+        {/* INVOICE / QUOTATION */}
         <div style={segmentedContainer}>
           {["INVOICE","QUOTATION"].map(type=>(
             <div key={type} onClick={()=>setDocType(type)} style={{
@@ -156,17 +163,51 @@ export default function Page() {
 
         {tasks.map((t)=>(
           <div key={t.id} style={card}>
+
             <div style={taskHeader}>
               <input value={t.name} onChange={(e)=>updateTask(t.id,"name",e.target.value)} style={{...input,marginBottom:0}}/>
               <button onClick={()=>deleteTask(t.id)} style={deleteBtn}>✕</button>
             </div>
+
+            {/* SEGMENTED */}
+            <div style={segmentedContainer}>
+              <div style={{
+                ...slider,
+                transform:
+                  t.type==="sqft"?"translateX(0%)":
+                  t.type==="nos"?"translateX(100%)":
+                  "translateX(200%)"
+              }}/>
+
+              {["sqft","nos","direct"].map(type=>(
+                <div key={type}
+                  onClick={()=>updateTask(t.id,"type",type)}
+                  style={{...segmentItem, color:t.type===type?"#fff":"#666"}}
+                >
+                  {type}
+                </div>
+              ))}
+            </div>
+
+            {t.type!=="direct"?(
+              <div style={row}>
+                <input type="number" placeholder="Qty" onChange={(e)=>updateTask(t.id,"qty",+e.target.value)} style={input}/>
+                <input type="number" placeholder="Rate" onChange={(e)=>updateTask(t.id,"rate",+e.target.value)} style={input}/>
+              </div>
+            ):(
+              <input type="number" placeholder="Amount" onChange={(e)=>updateTask(t.id,"amount",+e.target.value)} style={input}/>
+            )}
+
             <div style={amount}>₹ {getTotal(t).toLocaleString()}</div>
+
           </div>
         ))}
 
         <button onClick={addTask} style={addBtn}>+ Add Task</button>
+
       </div>
 
+      {/* FLOATING */}
       <div onMouseDown={startDrag} style={floating}>
         ₹ {total.toLocaleString()}
         <div style={{fontSize:12,opacity:0.6}}>Incl. GST</div>
@@ -176,35 +217,21 @@ export default function Page() {
   );
 }
 
-/* ===== STYLES (MOVED OUTSIDE) ===== */
+/* ===== STYLES (OUTSIDE COMPONENT — IMPORTANT) ===== */
 
 const container = { maxWidth:520, margin:"auto", padding:20 };
-
-const header = {
-  position:"sticky", top:0, zIndex:50, display:"flex",
-  justifyContent:"space-between", alignItems:"center", padding:"10px 0"
-};
-
+const header = { display:"flex", justifyContent:"space-between", alignItems:"center", padding:"10px 0" };
 const topBtn = { padding:"10px 14px", borderRadius:10, border:"none", background:"#000", color:"#fff" };
-
 const toggle = { padding:10, borderRadius:10, border:"none" };
-
 const formWrapper = { padding:16, borderRadius:20, paddingBottom:120 };
-
 const input = { width:"100%", padding:14, marginBottom:12, borderRadius:12 };
-
 const row = { display:"flex", gap:10 };
-
 const card = { padding:16, borderRadius:18, marginBottom:14 };
-
 const taskHeader = { display:"flex", gap:10 };
-
 const deleteBtn = { width:32, height:32, borderRadius:"50%" };
-
-const segmentedContainer = { display:"flex", background:"#e5e7eb", borderRadius:14, padding:4, marginBottom:12 };
-
+const segmentedContainer = { position:"relative", display:"flex", background:"#e5e7eb", borderRadius:14, padding:4, marginTop:10, marginBottom:14 };
+const slider = { position:"absolute", top:4, left:4, width:"33.33%", height:"calc(100% - 8px)", background:"#000", borderRadius:10, transition:"transform 0.3s" };
+const segmentItem = { flex:1, textAlign:"center", padding:10, cursor:"pointer", zIndex:1 };
 const amount = { textAlign:"right" };
-
 const addBtn = { width:"100%", padding:14, borderRadius:12, background:"#000", color:"#fff" };
-
 const floating = { position:"fixed", bottom:90, right:20, padding:"12px 18px", borderRadius:20 };
