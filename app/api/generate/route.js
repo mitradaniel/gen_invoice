@@ -100,7 +100,7 @@ export async function POST(req) {
     });
 
     /* ================= TASKS ================= */
-    let y = 600;
+    let y = 650;
 
     tasks.forEach((t, i) => {
       let totalVal = 0;
