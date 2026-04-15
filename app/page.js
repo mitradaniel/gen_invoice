@@ -161,18 +161,35 @@ export default function Page() {
               <button onClick={() => deleteTask(t.id)} style={deleteBtn}>✕</button>
             </div>
 
-<div style={segmentedContainer}>
-  <div
-    style={{
-      ...slider,
-      transform:
-        t.type === "sqft"
-          ? "translateX(0%)"
-          : t.type === "nos"
-          ? "translateX(100%)"
-          : "translateX(200%)"
-    }}
-  />
+const segmentedContainer = {
+  position: "relative",
+  display: "flex",
+  background: "#e5e7eb",
+  borderRadius: 14,
+  padding: 4,
+  marginBottom: 14
+};
+
+const slider = {
+  position: "absolute",
+  top: 4,
+  left: 4,
+  width: "33.33%",
+  height: "calc(100% - 8px)",
+  background: "#000",
+  borderRadius: 10,
+  transition: "transform 0.25s ease"
+};
+
+const segmentItem = {
+  flex: 1,
+  textAlign: "center",
+  padding: 10,
+  cursor: "pointer",
+  zIndex: 1,
+  fontSize: 13,
+  fontWeight: "500"
+};
 
   {["sqft","nos","direct"].map(type => (
     <div
