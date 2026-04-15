@@ -16,7 +16,6 @@ export async function POST(req) {
       total = 0
     } = body || {};
 
-    /* ===== CREATE NEW PDF (NO TEMPLATE) ===== */
     const pdfDoc = await PDFDocument.create();
     const page = pdfDoc.addPage([595, 842]);
 
@@ -25,107 +24,101 @@ export async function POST(req) {
 
     const { width, height } = page.getSize();
 
-    /* ===== TO ADDRESS ===== */
-    let y = height - 100;
+    /* ===== HEADER ===== */
+    let y = height - 80;
 
-    (to || "").split("\n").forEach((line) => {
+    (to || "").split("\n").forEach(line => {
       page.drawText(line, { x: 50, y, size: 10, font });
       y -= 14;
     });
 
-    /* ===== SUBJECT ===== */
     y -= 10;
+
     page.drawText(`Subject: ${subject}`, {
       x: 50,
       y,
       size: 11,
-      font: boldFont,
+      font: boldFont
     });
 
-    /* ===== DATE + INVOICE ===== */
     page.drawText(`Date: ${date}`, {
       x: width - 180,
       y: height - 60,
       size: 10,
-      font,
+      font
     });
 
     page.drawText(`Invoice: ${invoice}`, {
       x: width - 180,
       y: height - 75,
       size: 10,
-      font,
+      font
     });
 
     /* ===== TASKS ===== */
-    let taskY = height - 220;
+    let taskY = height - 200;
 
     (tasks || []).forEach((t, i) => {
       const amount =
-        t?.type === "direct"
-          ? t?.amount || 0
-          : (t?.qty || 0) * (t?.rate || 0);
+        t.type === "direct"
+          ? t.amount || 0
+          : (t.qty || 0) * (t.rate || 0);
 
-      const text =
-        t?.type === "direct"
-          ? `${i + 1}. ${t?.name || ""}`
-          : `${i + 1}. ${t?.name || ""} (${t?.qty || 0} x ${t?.rate || 0})`;
+      const label =
+        t.type === "direct"
+          ? `${i + 1}. ${t.name}`
+          : `${i + 1}. ${t.name} (${t.qty} x ${t.rate})`;
 
-      page.drawText(text, { x: 60, y: taskY, size: 10, font });
+      page.drawText(label, { x: 50, y: taskY, size: 10, font });
 
       page.drawText(`₹ ${amount.toFixed(0)}`, {
         x: width - 100,
         y: taskY,
         size: 10,
-        font,
+        font
       });
 
       taskY -= 18;
     });
 
-    /* ===== TOTALS ===== */
+    /* ===== TOTAL ===== */
     let calcY = taskY - 20;
 
-    const drawLine = (label, value, bold = false) => {
+    const draw = (label, value, bold = false) => {
       page.drawText(label, {
         x: width - 160,
         y: calcY,
         size: 10,
-        font: bold ? boldFont : font,
+        font: bold ? boldFont : font
       });
 
-      page.drawText(`₹ ${Number(value || 0).toFixed(0)}`, {
+      page.drawText(`₹ ${Number(value).toFixed(0)}`, {
         x: width - 80,
         y: calcY,
         size: 10,
-        font: bold ? boldFont : font,
+        font: bold ? boldFont : font
       });
 
       calcY -= 15;
     };
 
-    drawLine("Subtotal:", subtotal);
-    drawLine("SGST:", sgst);
-    drawLine("CGST:", cgst);
-    drawLine("Total:", total, true);
+    draw("Subtotal:", subtotal);
+    draw("SGST:", sgst);
+    draw("CGST:", cgst);
+    draw("Total:", total, true);
 
-    /* ===== SAVE ===== */
     const pdfBytes = await pdfDoc.save();
 
     return new Response(pdfBytes, {
-      status: 200,
       headers: {
         "Content-Type": "application/pdf",
-        "Content-Disposition": `inline; filename="${invoice}.pdf`,
-      },
+        "Content-Disposition": "inline; filename=invoice.pdf"
+      }
     });
 
   } catch (err) {
-    console.error("🔥 FINAL ERROR:", err);
+    console.error("PDF ERROR:", err);
 
-    return new Response(
-      JSON.stringify({ error: err.message }),
-      { status: 500 }
-    );
+    return new Response("Error generating PDF", { status: 500 });
   }
 }
