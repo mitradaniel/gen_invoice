@@ -2,24 +2,20 @@ import { PDFDocument, StandardFonts } from "pdf-lib";
 import fs from "fs";
 import path from "path";
 
-/* ===== DATE FORMAT ===== */
+export const runtime = "nodejs";
+
 const formatDate = (inputDate) => {
   if (!inputDate) return "";
-
   const d = new Date(inputDate);
   const day = String(d.getDate()).padStart(2, "0");
   const month = String(d.getMonth() + 1).padStart(2, "0");
   const year = d.getFullYear();
-
   return `${day}-${month}-${year}`;
 };
 
-/* ===== ₹ FORMAT (INDIA) ===== */
 const formatINR = (num) => {
   return new Intl.NumberFormat("en-IN").format(Math.round(num || 0));
 };
-
-export const runtime = "nodejs";
 
 export async function POST(req) {
   try {
@@ -35,14 +31,19 @@ export async function POST(req) {
       sgst = 0,
       cgst = 0,
       total = 0,
-      docType = "INVOICE",   // ✅ NEW
-      remarks = ""           // ✅ NEW
+      docType = "INVOICE",
+      remarks = ""
     } = body;
 
     const filePath = path.join(process.cwd(), "public", "Invoice_Template.pdf");
-    const existingPdfBytes = fs.readFileSync(filePath);
 
+    if (!fs.existsSync(filePath)) {
+      throw new Error("Invoice_Template.pdf missing in public folder");
+    }
+
+    const existingPdfBytes = fs.readFileSync(filePath);
     const pdfDoc = await PDFDocument.load(existingPdfBytes);
+
     const page = pdfDoc.getPages()[0];
 
     const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
@@ -50,56 +51,9 @@ export async function POST(req) {
 
     const { width } = page.getSize();
 
-    /* ===== TEXT WRAP ===== */
-    const drawWrappedText = (text, x, y, maxWidth, lineHeight, font, size) => {
-      const words = (text || "").split(" ");
-      let line = "";
-      let lines = [];
-
-      words.forEach(word => {
-        const testLine = line + word + " ";
-        const textWidth = font.widthOfTextAtSize(testLine, size);
-
-        if (textWidth > maxWidth) {
-          lines.push(line);
-          line = word + " ";
-        } else {
-          line = testLine;
-        }
-      });
-
-      lines.push(line);
-
-      lines.forEach((l, i) => {
-        page.drawText(l.trim(), {
-          x,
-          y: y - i * lineHeight,
-          size,
-          font
-        });
-      });
-
-      return y - lines.length * lineHeight;
-    };
-
-    /* ===== HEADER RIGHT ===== */
-    page.drawText(`Date: ${formatDate(date)}`, {
-      x: width - 150,
-      y: 670,
-      size: 10,
-      font: bold
-    });
-
-    page.drawText(`${docType === "QUOTATION" ? "Quote" : "Invoice"}: ${invoice}`, {
-      x: width - 150,
-      y: 650,
-      size: 10,
-      font: bold
-    });
-
-    /* ===== CENTER TITLE (DYNAMIC) ===== */
+    /* ===== TITLE ===== */
     const title = docType || "INVOICE";
-    const fontSize = 25;
+    const fontSize = 24;
     const textWidth = bold.widthOfTextAtSize(title, fontSize);
 
     page.drawText(title, {
@@ -109,134 +63,123 @@ export async function POST(req) {
       font: bold
     });
 
+    /* ===== HEADER ===== */
+    page.drawText(`Date: ${formatDate(date)}`, {
+      x: width - 160,
+      y: 700,
+      size: 10,
+      font
+    });
+
+    page.drawText(`Invoice: ${invoice}`, {
+      x: width - 160,
+      y: 680,
+      size: 10,
+      font
+    });
+
+    /* ===== TO ===== */
+    let y = 620;
+
+    page.drawText("TO,", { x: 50, y, size: 11, font: bold });
+    y -= 16;
+
+    to.split("\n").forEach(line => {
+      page.drawText(line, { x: 50, y, size: 10, font });
+      y -= 14;
+    });
+
     /* ===== SUBJECT ===== */
     page.drawText(`Subject: ${subject}`, {
       x: 50,
-      y: 560,
-      size: 12,
+      y: y - 10,
+      size: 11,
       font: bold
     });
 
-    /* ===== TO ADDRESS ===== */
-    let yTo = 720;
-
-    page.drawText("TO,", { x: 50, y: yTo, size: 11, font: bold });
-    yTo -= 18;
-
-    (to || "").split("\n").forEach(line => {
-      if (line.trim()) {
-        page.drawText(line, { x: 50, y: yTo, size: 10, font });
-        yTo -= 14;
-      }
-    });
-
     /* ===== TASKS ===== */
-    let y = 520;
+    let taskY = y - 60;
 
     tasks.forEach((t, i) => {
+      const val = t.type === "direct"
+        ? t.amount || 0
+        : (t.qty || 0) * (t.rate || 0);
 
-      let totalVal = 0;
+      page.drawText(`${i + 1}. ${t.name}`, {
+        x: 50,
+        y: taskY,
+        size: 10,
+        font
+      });
 
-      if (t.type === "sqft" || t.type === "nos") {
-        totalVal = (t.qty || 0) * (t.rate || 0);
+      taskY -= 14;
+
+      let line = "";
+
+      if (t.type === "direct") {
+        line = `₹ ${formatINR(val)}`;
       } else {
-        totalVal = t.amount || 0;
+        line = `${t.qty || 0} × ${formatINR(t.rate)} = ₹ ${formatINR(val)}`;
       }
 
-      /* TASK TITLE */
-      y = drawWrappedText(
-        `${i + 1}. ${t.name || ""}`,
-        50,
-        y,
-        400,
-        14,
-        bold,
-        10
-      );
+      page.drawText(line, {
+        x: 70,
+        y: taskY,
+        size: 10,
+        font
+      });
 
-      /* VALUE TEXT */
-      let valueText = "";
-
-      if (t.type === "sqft") {
-        valueText = `${t.qty || 0} SQFT × ${formatINR(t.rate)} = ₹ ${formatINR(totalVal)}`;
-      } 
-      else if (t.type === "nos") {
-        valueText = `${t.qty || 0} Nos × ${formatINR(t.rate)} = ₹ ${formatINR(totalVal)}`;
-      } 
-      else {
-        valueText = `₹ ${formatINR(totalVal)}`;
-      }
-
-      y = drawWrappedText(
-        valueText,
-        60,
-        y - 2,
-        400,
-        14,
-        font,
-        10
-      );
-
-      y -= 10;
+      taskY -= 20;
     });
 
-    /* ===== REMARKS (CORRECT POSITION) ===== */
-    if (remarks && remarks.trim()) {
-      y -= 10;
-
+    /* ===== REMARKS ===== */
+    if (remarks) {
       page.drawText("Remarks:", {
         x: 50,
-        y,
+        y: taskY,
         size: 11,
         font: bold
       });
 
-      y -= 14;
+      taskY -= 15;
 
-      y = drawWrappedText(
-        remarks,
-        50,
-        y,
-        450,
-        14,
-        font,
-        10
-      );
+      page.drawText(remarks, {
+        x: 50,
+        y: taskY,
+        size: 10,
+        font
+      });
 
-      y -= 10;
+      taskY -= 20;
     }
 
     /* ===== TOTALS ===== */
-    let yTotal = y - 20;
+    page.drawText(`Subtotal: ₹ ${formatINR(subtotal)}`, { x: 50, y: taskY, size: 11, font });
+    taskY -= 15;
 
-    const drawLeft = (label, value, boldText = false) => {
-      page.drawText(`${label} ₹ ${formatINR(value)}`, {
-        x: 50,
-        y: yTotal,
-        size: boldText ? 12 : 11,
-        font: boldText ? bold : font
-      });
+    page.drawText(`SGST: ₹ ${formatINR(sgst)}`, { x: 50, y: taskY, size: 11, font });
+    taskY -= 15;
 
-      yTotal -= 18;
-    };
+    page.drawText(`CGST: ₹ ${formatINR(cgst)}`, { x: 50, y: taskY, size: 11, font });
+    taskY -= 20;
 
-    drawLeft("Subtotal:", subtotal);
-    drawLeft("SGST:", sgst);
-    drawLeft("CGST:", cgst);
-    drawLeft("Grand Total:", total, true);
+    page.drawText(`Grand Total: ₹ ${formatINR(total)}`, {
+      x: 50,
+      y: taskY,
+      size: 12,
+      font: bold
+    });
 
-    /* ===== SAVE ===== */
     const pdfBytes = await pdfDoc.save();
 
     return new Response(pdfBytes, {
       headers: {
-        "Content-Type": "application/pdf",
-        "Content-Disposition": `attachment; filename=${invoice}.pdf`
+        "Content-Type": "application/pdf"
       }
     });
 
   } catch (err) {
-    console.error("🔥 PDF ERROR:", err);
+    console.error("PDF ERROR:", err);
     return new Response("PDF generation failed", { status: 500 });
   }
 }
