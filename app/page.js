@@ -81,38 +81,37 @@ export default function Page() {
   const total = subtotal + gst;
 
   /* ===== PDF ===== */
-  const generatePDF = async () => {
-    try {
-      setLoading(true);
+  const generatePDF = () => {
 
-      const res = await fetch("/api/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          to,
-          tasks,
-          subject,
-          invoice,
-          date,
-          subtotal,
-          sgst: gst / 2,
-          cgst: gst / 2,
-          total,
-          docType,
-          remarks
-        })
-      });
+  const form = document.createElement("form");
+  form.method = "POST";
+  form.action = "/api/generate";
+  form.target = "_blank";
 
-      const blob = await res.blob();
-      const url = window.URL.createObjectURL(blob);
-      window.open(url);
-      
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `${invoice || "invoice"}.pdf`; // file name
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
+  const data = {
+    to,
+    tasks,
+    subject,
+    invoice,
+    date,
+    subtotal,
+    sgst: gst / 2,
+    cgst: gst / 2,
+    total,
+    docType,
+    remarks
+  };
+
+  const input = document.createElement("input");
+  input.type = "hidden";
+  input.name = "data";
+  input.value = JSON.stringify(data);
+
+  form.appendChild(input);
+  document.body.appendChild(form);
+  form.submit();
+  form.remove();
+};
       
       window.URL.revokeObjectURL(url);
       setLoading(false);
