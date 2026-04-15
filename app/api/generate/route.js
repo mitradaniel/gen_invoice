@@ -1,20 +1,16 @@
 import { PDFDocument, StandardFonts } from "pdf-lib";
-import fs from "fs";
-import path from "path";
 
 export const runtime = "nodejs";
 
-const formatDate = (inputDate) => {
-  if (!inputDate) return "";
-  const d = new Date(inputDate);
-  const day = String(d.getDate()).padStart(2, "0");
-  const month = String(d.getMonth() + 1).padStart(2, "0");
-  const year = d.getFullYear();
-  return `${day}-${month}-${year}`;
-};
+const formatINR = (num) =>
+  new Intl.NumberFormat("en-IN").format(Math.round(num || 0));
 
-const formatINR = (num) => {
-  return new Intl.NumberFormat("en-IN").format(Math.round(num || 0));
+const formatDate = (d) => {
+  if (!d) return "";
+  const x = new Date(d);
+  return `${String(x.getDate()).padStart(2, "0")}-${String(
+    x.getMonth() + 1
+  ).padStart(2, "0")}-${x.getFullYear()}`;
 };
 
 export async function POST(req) {
@@ -35,16 +31,9 @@ export async function POST(req) {
       remarks = ""
     } = body;
 
-    const filePath = path.join(process.cwd(), "public", "Invoice_Template.pdf");
-
-    if (!fs.existsSync(filePath)) {
-      throw new Error("Invoice_Template.pdf missing in public folder");
-    }
-
-    const existingPdfBytes = fs.readFileSync(filePath);
-    const pdfDoc = await PDFDocument.load(existingPdfBytes);
-
-    const page = pdfDoc.getPages()[0];
+    /* ===== CREATE NEW PDF ===== */
+    const pdfDoc = await PDFDocument.create();
+    const page = pdfDoc.addPage([595, 842]); // A4
 
     const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
     const bold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
@@ -52,58 +41,58 @@ export async function POST(req) {
     const { width } = page.getSize();
 
     /* ===== TITLE ===== */
-    const title = docType || "INVOICE";
-    const fontSize = 24;
-    const textWidth = bold.widthOfTextAtSize(title, fontSize);
+    const titleWidth = bold.widthOfTextAtSize(docType, 24);
 
-    page.drawText(title, {
-      x: (width - textWidth) / 2,
-      y: 650,
-      size: fontSize,
+    page.drawText(docType, {
+      x: (width - titleWidth) / 2,
+      y: 780,
+      size: 24,
       font: bold
     });
 
     /* ===== HEADER ===== */
     page.drawText(`Date: ${formatDate(date)}`, {
-      x: width - 160,
-      y: 700,
+      x: width - 200,
+      y: 760,
       size: 10,
       font
     });
 
     page.drawText(`Invoice: ${invoice}`, {
-      x: width - 160,
-      y: 680,
+      x: width - 200,
+      y: 745,
       size: 10,
       font
     });
 
     /* ===== TO ===== */
-    let y = 620;
+    let y = 700;
 
     page.drawText("TO,", { x: 50, y, size: 11, font: bold });
     y -= 16;
 
-    to.split("\n").forEach(line => {
+    to.split("\n").forEach((line) => {
       page.drawText(line, { x: 50, y, size: 10, font });
       y -= 14;
     });
 
     /* ===== SUBJECT ===== */
+    y -= 10;
     page.drawText(`Subject: ${subject}`, {
       x: 50,
-      y: y - 10,
+      y,
       size: 11,
       font: bold
     });
 
     /* ===== TASKS ===== */
-    let taskY = y - 60;
+    let taskY = y - 40;
 
     tasks.forEach((t, i) => {
-      const val = t.type === "direct"
-        ? t.amount || 0
-        : (t.qty || 0) * (t.rate || 0);
+      const val =
+        t.type === "direct"
+          ? t.amount || 0
+          : (t.qty || 0) * (t.rate || 0);
 
       page.drawText(`${i + 1}. ${t.name}`, {
         x: 50,
@@ -114,13 +103,10 @@ export async function POST(req) {
 
       taskY -= 14;
 
-      let line = "";
-
-      if (t.type === "direct") {
-        line = `₹ ${formatINR(val)}`;
-      } else {
-        line = `${t.qty || 0} × ${formatINR(t.rate)} = ₹ ${formatINR(val)}`;
-      }
+      const line =
+        t.type === "direct"
+          ? `₹ ${formatINR(val)}`
+          : `${t.qty || 0} × ${formatINR(t.rate)} = ₹ ${formatINR(val)}`;
 
       page.drawText(line, {
         x: 70,
@@ -141,7 +127,7 @@ export async function POST(req) {
         font: bold
       });
 
-      taskY -= 15;
+      taskY -= 14;
 
       page.drawText(remarks, {
         x: 50,
@@ -154,13 +140,31 @@ export async function POST(req) {
     }
 
     /* ===== TOTALS ===== */
-    page.drawText(`Subtotal: ₹ ${formatINR(subtotal)}`, { x: 50, y: taskY, size: 11, font });
+    page.drawText(`Subtotal: ₹ ${formatINR(subtotal)}`, {
+      x: 50,
+      y: taskY,
+      size: 11,
+      font
+    });
+
     taskY -= 15;
 
-    page.drawText(`SGST: ₹ ${formatINR(sgst)}`, { x: 50, y: taskY, size: 11, font });
+    page.drawText(`SGST: ₹ ${formatINR(sgst)}`, {
+      x: 50,
+      y: taskY,
+      size: 11,
+      font
+    });
+
     taskY -= 15;
 
-    page.drawText(`CGST: ₹ ${formatINR(cgst)}`, { x: 50, y: taskY, size: 11, font });
+    page.drawText(`CGST: ₹ ${formatINR(cgst)}`, {
+      x: 50,
+      y: taskY,
+      size: 11,
+      font
+    });
+
     taskY -= 20;
 
     page.drawText(`Grand Total: ₹ ${formatINR(total)}`, {
@@ -180,6 +184,6 @@ export async function POST(req) {
 
   } catch (err) {
     console.error("PDF ERROR:", err);
-    return new Response("PDF generation failed", { status: 500 });
+    return new Response("PDF failed", { status: 500 });
   }
 }
