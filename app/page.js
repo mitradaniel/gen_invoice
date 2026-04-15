@@ -17,7 +17,7 @@ export default function Page() {
   const [to, setTo] = useState("");
 
   /* ===== FLOATING ===== */
-  const [pos, setPos] = useState({ x: 260, y: 10 });
+  const [pos, setPos] = useState({ x: 20, y: 80 });
   const dragging = useRef(false);
   const offset = useRef({ x: 0, y: 0 });
 
@@ -161,11 +161,16 @@ export default function Page() {
           <input type="date" onChange={(e)=>setDate(e.target.value)} style={input}/>
         </div>
 
+        {/* TASKS */}
         {tasks.map((t)=>(
           <div key={t.id} style={card}>
 
             <div style={taskHeader}>
-              <input value={t.name} onChange={(e)=>updateTask(t.id,"name",e.target.value)} style={{...input,marginBottom:0}}/>
+              <input
+                value={t.name}
+                onChange={(e)=>updateTask(t.id,"name",e.target.value)}
+                style={{...input,marginBottom:0}}
+              />
               <button onClick={()=>deleteTask(t.id)} style={deleteBtn}>✕</button>
             </div>
 
@@ -191,14 +196,16 @@ export default function Page() {
 
             {t.type!=="direct"?(
               <div style={row}>
-                <input type="number" placeholder="Qty" onChange={(e)=>updateTask(t.id,"qty",+e.target.value)} style={input}/>
-                <input type="number" placeholder="Rate" onChange={(e)=>updateTask(t.id,"rate",+e.target.value)} style={input}/>
+                <input type="number" placeholder="Qty" value={t.qty || ""} onChange={(e)=>updateTask(t.id,"qty",+e.target.value)} style={input}/>
+                <input type="number" placeholder="Rate" value={t.rate || ""} onChange={(e)=>updateTask(t.id,"rate",+e.target.value)} style={input}/>
               </div>
             ):(
-              <input type="number" placeholder="Amount" onChange={(e)=>updateTask(t.id,"amount",+e.target.value)} style={input}/>
+              <input type="number" placeholder="Amount" value={t.amount || ""} onChange={(e)=>updateTask(t.id,"amount",+e.target.value)} style={input}/>
             )}
 
-            <div style={amount}>₹ {getTotal(t).toLocaleString()}</div>
+            <div style={amount}>
+              ₹ {getTotal(t).toLocaleString()}
+            </div>
 
           </div>
         ))}
@@ -208,7 +215,14 @@ export default function Page() {
       </div>
 
       {/* FLOATING */}
-      <div onMouseDown={startDrag} style={floating}>
+      <div
+        onMouseDown={startDrag}
+        style={{
+          ...floating,
+          left: pos.x,
+          top: pos.y
+        }}
+      >
         ₹ {total.toLocaleString()}
         <div style={{fontSize:12,opacity:0.6}}>Incl. GST</div>
       </div>
@@ -217,7 +231,7 @@ export default function Page() {
   );
 }
 
-/* ===== STYLES (OUTSIDE COMPONENT — IMPORTANT) ===== */
+/* ===== STYLES ===== */
 
 const container = { maxWidth:520, margin:"auto", padding:20 };
 const header = { display:"flex", justifyContent:"space-between", alignItems:"center", padding:"10px 0" };
@@ -234,4 +248,4 @@ const slider = { position:"absolute", top:4, left:4, width:"33.33%", height:"cal
 const segmentItem = { flex:1, textAlign:"center", padding:10, cursor:"pointer", zIndex:1 };
 const amount = { textAlign:"right" };
 const addBtn = { width:"100%", padding:14, borderRadius:12, background:"#000", color:"#fff" };
-const floating = { position:"fixed", bottom:90, right:20, padding:"12px 18px", borderRadius:20 };
+const floating = { position:"fixed", padding:"12px 18px", borderRadius:20, background:"#fff", boxShadow:"0 10px 30px rgba(0,0,0,0.2)" };
