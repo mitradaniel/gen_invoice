@@ -22,24 +22,19 @@ export async function POST(req) {
 
     let pdfDoc;
 
-    /* ===== TRY LOADING TEMPLATE ===== */
+    /* ===== LOAD TEMPLATE SAFELY ===== */
     try {
-      const filePath = path.join(
-        process.cwd(),
-        "public",
-        "Invoice_Template.pdf"
-      );
+      const filePath = path.join(process.cwd(), "public", "Invoice_Template.pdf");
 
-      const existingPdfBytes = fs.readFileSync(filePath);
-
-      pdfDoc = await PDFDocument.load(existingPdfBytes, {
-        ignoreEncryption: true,
-      });
-
-    } catch (err) {
-      console.log("⚠️ Template failed, using blank PDF");
-
-      /* FALLBACK (NO BREAK) */
+      if (fs.existsSync(filePath)) {
+        const existingPdfBytes = fs.readFileSync(filePath);
+        pdfDoc = await PDFDocument.load(existingPdfBytes);
+      } else {
+        pdfDoc = await PDFDocument.create();
+        pdfDoc.addPage([595, 842]);
+      }
+    } catch (e) {
+      console.log("Template failed, fallback to blank PDF");
       pdfDoc = await PDFDocument.create();
       pdfDoc.addPage([595, 842]);
     }
@@ -51,48 +46,40 @@ export async function POST(req) {
 
     const { width, height } = page.getSize();
 
-    /* ================= TO ADDRESS ================= */
+    let y = height - 100;
 
-    let y = height - 120;
-
+    /* ===== TO ADDRESS ===== */
     to.split("\n").forEach((line) => {
-      page.drawText(line, {
-        x: 50,
-        y,
-        size: 10,
-        font
-      });
+      page.drawText(line, { x: 50, y, size: 10, font });
       y -= 14;
     });
 
-    /* ================= SUBJECT ================= */
-
+    /* ===== SUBJECT ===== */
+    y -= 10;
     page.drawText(`Subject: ${subject}`, {
       x: 50,
-      y: y - 10,
+      y,
       size: 11,
       font: boldFont
     });
 
-    /* ================= DATE + INVOICE ================= */
-
+    /* ===== DATE + INVOICE ===== */
     page.drawText(`Date: ${date}`, {
       x: width - 180,
-      y: height - 80,
+      y: height - 60,
       size: 10,
       font
     });
 
     page.drawText(`Invoice: ${invoice}`, {
       x: width - 180,
-      y: height - 95,
+      y: height - 75,
       size: 10,
       font
     });
 
-    /* ================= TASKS ================= */
-
-    let taskY = height - 250;
+    /* ===== TASKS ===== */
+    let taskY = height - 220;
 
     tasks.forEach((t, i) => {
       const amount =
@@ -122,11 +109,10 @@ export async function POST(req) {
       taskY -= 18;
     });
 
-    /* ================= CALCULATIONS ================= */
+    /* ===== CALCULATIONS ===== */
+    let calcY = taskY - 20;
 
-    let calcY = taskY - 30;
-
-    const rightX = width - 150;
+    const rightX = width - 160;
 
     const drawLine = (label, value, bold = false) => {
       page.drawText(label, {
@@ -151,23 +137,22 @@ export async function POST(req) {
     drawLine("CGST:", cgst);
     drawLine("Total:", total, true);
 
-    /* ================= SAVE ================= */
-
+    /* ===== SAVE ===== */
     const pdfBytes = await pdfDoc.save();
 
     return new Response(pdfBytes, {
+      status: 200,
       headers: {
         "Content-Type": "application/pdf",
-        "Content-Disposition": "attachment; filename=invoice.pdf"
-      }
+        "Content-Disposition": `attachment; filename="${invoice || "invoice"}.pdf`,
+      },
     });
 
   } catch (err) {
-    console.error("❌ FINAL ERROR:", err);
+    console.error("PDF ERROR:", err);
 
-    return new Response(
-      JSON.stringify({ error: err.message }),
-      { status: 500 }
-    );
+    return new Response("Internal Server Error", {
+      status: 500,
+    });
   }
 }
