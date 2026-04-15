@@ -48,37 +48,47 @@ export default function Page() {
   const total = subtotal + gst;
 
   const generatePDF = async () => {
-    try {
-      setLoading(true);
+  try {
+    setLoading(true);
 
-      const res = await fetch("/api/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          to,
-          tasks,
-          subject,
-          invoice,
-          date,
-          subtotal,
-          sgst: gst / 2,
-          cgst: gst / 2,
-          total,
-          docType,
-          remarks
-        })
-      });
+    const res = await fetch("/api/generate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        to,
+        tasks,
+        subject,
+        invoice,
+        date,
+        subtotal,
+        sgst: gst / 2,
+        cgst: gst / 2,
+        total,
+        docType,
+        remarks
+      })
+    });
 
-      const blob = await res.blob();
-      const url = window.URL.createObjectURL(blob);
-      window.open(url);
-
+    if (!res.ok) {
+      const text = await res.text();
+      console.error("API ERROR:", text);
+      alert("PDF API failed: " + text);
       setLoading(false);
-    } catch {
-      alert("PDF failed");
-      setLoading(false);
+      return;
     }
-  };
+
+    const blob = await res.blob();
+    const url = window.URL.createObjectURL(blob);
+    window.open(url);
+
+    setLoading(false);
+
+  } catch (err) {
+    console.error("FETCH ERROR:", err);
+    alert("Network error");
+    setLoading(false);
+  }
+};
 
   return (
     <div style={{
