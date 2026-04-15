@@ -207,7 +207,17 @@ export default function Page() {
 
 const container = { maxWidth:520, margin:"auto", padding:20 };
 
-const header = { display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 };
+const header = {
+  position: "sticky",
+  top: 0,
+  zIndex: 50,
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  padding: "10px 0",
+  backdropFilter: "blur(20px)",
+  background: "rgba(255,255,255,0.4)"
+};
 
 const topBtn = { padding:"10px 14px", borderRadius:10, border:"none", background:"#000", color:"#fff", cursor:"pointer" };
 
@@ -216,14 +226,35 @@ const toggle = { padding:10, borderRadius:10, border:"none", cursor:"pointer" };
 const formWrapper = {
   padding: 16,
   borderRadius: 20,
-  paddingBottom: 120   // 👈 CRITICAL FIX
+  paddingBottom: 120,
+  background: "rgba(255,255,255,0.25)",
+  backdropFilter: "blur(20px)",
+  WebkitBackdropFilter: "blur(20px)",
+  border: "1px solid rgba(255,255,255,0.3)",
+  boxShadow: "0 8px 32px rgba(0,0,0,0.1)"
 };
 
-const input = { width:"100%", padding:14, marginBottom:10, borderRadius:12, border:"1px solid #ddd" };
+const input = {
+  width: "100%",
+  padding: 14,
+  marginBottom: 12,
+  borderRadius: 12,
+  border: "1px solid rgba(0,0,0,0.1)",
+  background: "rgba(255,255,255,0.8)",
+  outline: "none"
+};
 
 const row = { display:"flex", gap:10 };
 
-const card = { padding:16, borderRadius:16, background:"#fff", marginBottom:12 };
+const card = {
+  padding: 16,
+  borderRadius: 18,
+  marginBottom: 14,
+  background: "rgba(255,255,255,0.6)",
+  backdropFilter: "blur(16px)",
+  border: "1px solid rgba(255,255,255,0.4)",
+  boxShadow: "0 10px 30px rgba(0,0,0,0.08)"
+};
 
 const taskHeader = { display:"flex", gap:10 };
 
@@ -241,14 +272,15 @@ const addBtn = { width:"100%", padding:14, borderRadius:12, background:"#000", c
 
 const floating = {
   position: "fixed",
-  bottom: 90,            // 👈 above bottom edge (safe spacing)
+  bottom: 90,
   right: 20,
-  padding: "12px 16px",
-  borderRadius: 18,
-  background: "rgba(255,255,255,0.7)",
-  backdropFilter: "blur(20px)",
-  boxShadow: "0 10px 30px rgba(0,0,0,0.15)",
+  padding: "12px 18px",
+  borderRadius: 20,
+  background: "rgba(255,255,255,0.25)",
+  backdropFilter: "blur(25px)",
+  WebkitBackdropFilter: "blur(25px)",
+  border: "1px solid rgba(255,255,255,0.3)",
+  boxShadow: "0 10px 40px rgba(0,0,0,0.2)",
   fontWeight: "600",
-  cursor: "grab",
-  zIndex: 10
+  zIndex: 20
 };
