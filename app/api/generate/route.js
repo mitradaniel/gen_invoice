@@ -14,17 +14,15 @@ const formatDate = (inputDate) => {
   return `${day}-${month}-${year}`;
 };
 
-/* ===== INR FORMAT (OPTIONAL BUT CLEAN) ===== */
-const formatINR = (num) =>
-  new Intl.NumberFormat("en-IN").format(Math.round(num || 0));
-
 export const runtime = "nodejs";
 
 export async function POST(req) {
   try {
-    /* ===== BODY HANDLING (FIXED) ===== */
-    const formData = await req.formData();
-    const body = JSON.parse(formData.get("data") || "{}");
+        let body;
+    if (req.method === "POST") {
+      const formData = await req.formData();
+      body = JSON.parse(formData.get("data"));
+    }
 
     const {
       tasks = [],
@@ -36,7 +34,7 @@ export async function POST(req) {
       sgst = 0,
       cgst = 0,
       total = 0,
-      docType = "INVOICE",
+      docType = "INVOICE",// ✅ ADDED
       remarks = ""
     } = body;
 
@@ -99,12 +97,12 @@ export async function POST(req) {
     });
 
     /* ===== CENTER TITLE ===== */
-    const title = docType || "INVOICE";
+    const text = docType || "INVOICE"; // ✅ UPDATED
     const fontSize = 25;
-    const textWidth = bold.widthOfTextAtSize(title, fontSize);
+    const textWidth = bold.widthOfTextAtSize(text, fontSize);
     const xCenter = (width - textWidth) / 2;
 
-    page.drawText(title, {
+    page.drawText(text, {
       x: xCenter,
       y: 650,
       size: fontSize,
@@ -145,7 +143,6 @@ export async function POST(req) {
         totalVal = t.amount || 0;
       }
 
-      // Task title
       y = drawWrappedText(
         `${i + 1}. ${t.name || ""}`,
         50,
@@ -156,17 +153,16 @@ export async function POST(req) {
         10
       );
 
-      // Task value
       let valueText = "";
 
       if (t.type === "sqft") {
-        valueText = `${t.qty || 0} SQFT × ${formatINR(t.rate)} = INR ${formatINR(totalVal)}`;
+        valueText = `${t.qty || 0} SQFT × ${t.rate || 0} = INR ${Math.round(totalVal)}`;
       } 
       else if (t.type === "nos") {
-        valueText = `${t.qty || 0} Nos × ${formatINR(t.rate)} = INR ${formatINR(totalVal)}`;
+        valueText = `${t.qty || 0} Nos × ${t.rate || 0} = INR ${Math.round(totalVal)}`;
       } 
       else {
-        valueText = `INR ${formatINR(totalVal)}`;
+        valueText = `INR ${Math.round(totalVal)}`;
       }
 
       y = drawWrappedText(
@@ -186,7 +182,7 @@ export async function POST(req) {
     let yTotal = 200;
 
     const drawLeft = (label, value, boldText = false) => {
-      page.drawText(`${label} INR ${formatINR(value)}`, {
+      page.drawText(`${label} INR ${Math.round(value)}`, {
         x: 50,
         y: yTotal,
         size: boldText ? 12 : 11,
@@ -200,39 +196,36 @@ export async function POST(req) {
     drawLeft("SGST:", sgst);
     drawLeft("CGST:", cgst);
     drawLeft("Grand Total:", total, true);
-
     /* ===== REMARKS ===== */
-    if (remarks && remarks.trim()) {
 
-      let remarkY = yTotal - 20;
+if (remarks && remarks.trim()) {
+  let remarkY = yTotal - 20;
+  page.drawText("Remarks:", {
+    x: 50,
+    y: remarkY,
+    size: 11,
+    font: bold
+  });
 
-      page.drawText("Remarks:", {
-        x: 50,
-        y: remarkY,
-        size: 11,
-        font: bold
-      });
+  remarkY -= 15;
 
-      remarkY -= 15;
-
-      drawWrappedText(
-        remarks,
-        50,
-        remarkY,
-        450,
-        14,
-        font,
-        10
-      );
-    }
-
+  drawWrappedText(
+    remarks,
+    50,
+    remarkY,
+    450,
+    14,
+    font,
+    10
+  );
+}
     /* ===== SAVE ===== */
     const pdfBytes = await pdfDoc.save();
 
     return new Response(pdfBytes, {
       headers: {
         "Content-Type": "application/pdf",
-        "Content-Disposition": `attachment; filename="${invoice}.pdf"`
+        "Content-Disposition": `attachment; filename="${invoice}_${subject}.pdf"`
       }
     });
 
