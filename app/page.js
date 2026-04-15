@@ -105,8 +105,7 @@ export default function Page() {
       window.open(url);
 
       setLoading(false);
-
-    } catch (err) {
+    } catch {
       alert("PDF failed");
       setLoading(false);
     }
@@ -127,7 +126,7 @@ export default function Page() {
         </button>
       </div>
 
-      {/* FORM WRAPPER (FIXED WIDTH ALIGNMENT) */}
+      {/* FORM */}
       <div style={formWrapper}>
 
         <textarea
@@ -155,43 +154,46 @@ export default function Page() {
             <div style={taskHeader}>
               <input
                 placeholder="Task"
+                value={t.name}
                 onChange={(e) => updateTask(t.id, "name", e.target.value)}
                 style={{...input, marginBottom:0}}
               />
               <button onClick={() => deleteTask(t.id)} style={deleteBtn}>✕</button>
             </div>
 
-const segmentedContainer = {
-  position: "relative",
-  display: "flex",
-  background: "#e5e7eb",
-  borderRadius: 14,
-  padding: 4,
-  marginTop: 10,
-  marginBottom: 14
-};
+            {/* 🔥 iOS TOGGLE */}
+            <div style={segmentedContainer}>
+              <div
+                style={{
+                  ...slider,
+                  transform:
+                    t.type === "sqft"
+                      ? "translateX(0%)"
+                      : t.type === "nos"
+                      ? "translateX(100%)"
+                      : "translateX(200%)"
+                }}
+              />
 
-const slider = {
-  position: "absolute",
-  top: 4,
-  left: 4,
-  width: "33.33%",
-  height: "calc(100% - 8px)",
-  background: "#000",
-  borderRadius: 10,
-  transition: "transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1)" // 🔥 SPRING
-};
-
-const segmentItem = {
-  flex: 1,
-  textAlign: "center",
-  padding: 10,
-  cursor: "pointer",
-  zIndex: 1,
-  fontSize: 13,
-  fontWeight: "500",
-  transition: "transform 0.15s ease"
-};
+              {["sqft","nos","direct"].map(type => (
+                <div
+                  key={type}
+                  onClick={() => {
+                    updateTask(t.id, "type", type);
+                    if (navigator.vibrate) navigator.vibrate(10);
+                  }}
+                  style={{
+                    ...segmentItem,
+                    color: t.type === type ? "#fff" : "#666"
+                  }}
+                  onMouseDown={(e) => e.currentTarget.style.transform = "scale(0.92)"}
+                  onMouseUp={(e) => e.currentTarget.style.transform = "scale(1)"}
+                  onMouseLeave={(e) => e.currentTarget.style.transform = "scale(1)"}
+                >
+                  {type === "sqft" ? "SQFT/RFT" : type === "nos" ? "Nos" : "Direct"}
+                </div>
+              ))}
+            </div>
 
             {t.type !== "direct" ? (
               <div style={row}>
@@ -210,17 +212,6 @@ const segmentItem = {
 
       </div>
 
-      {/* LIVE PREVIEW */}
-      <div style={preview}>
-        <h3>Live Preview</h3>
-        <div>{subject}</div>
-        {tasks.map((t,i)=>(
-          <div key={i}>{t.name} - ₹ {getTotal(t)}</div>
-        ))}
-        <hr/>
-        <b>Total: ₹ {total.toFixed(0)}</b>
-      </div>
-
       {/* FLOATING TOTAL */}
       <div
         onMouseDown={startDrag}
@@ -233,7 +224,7 @@ const segmentItem = {
         <div style={{fontSize:12, opacity:0.6}}>Incl. GST</div>
       </div>
 
-      {/* GENERATE BUTTON */}
+      {/* GENERATE */}
       <button onClick={generatePDF} style={generateBtn}>
         {loading ? "Generating..." : "Generate PDF"}
       </button>
@@ -244,94 +235,57 @@ const segmentItem = {
 
 /* ===== STYLES ===== */
 
-const container = {
-  maxWidth: 520,
-  margin: "auto",
-  padding: 20,
-  fontFamily: "Inter"
-};
+const container = { maxWidth: 520, margin: "auto", padding: 20 };
 
-const formWrapper = {
-  background: "#ffffff10",
-  padding: 16,
-  borderRadius: 20,
-  backdropFilter: "blur(10px)"
-};
+const header = { display:"flex", justifyContent:"space-between", alignItems:"center" };
 
-const header = {
+const toggle = { padding:10, borderRadius:10, border:"none", cursor:"pointer" };
+
+const formWrapper = { padding:16, borderRadius:20 };
+
+const input = { width:"100%", padding:14, marginBottom:10, borderRadius:12, border:"1px solid #ddd" };
+
+const row = { display:"flex", gap:10 };
+
+const card = { padding:16, borderRadius:16, background:"#fff", marginBottom:12 };
+
+const taskHeader = { display:"flex", gap:10 };
+
+const deleteBtn = { width:32, height:32, borderRadius:"50%", border:"none" };
+
+const segmentedContainer = {
+  position:"relative",
   display:"flex",
-  justifyContent:"space-between",
-  alignItems:"center",
-  marginBottom:10
+  background:"#e5e7eb",
+  borderRadius:14,
+  padding:4,
+  marginTop:10,
+  marginBottom:14
 };
 
-const toggle = {
-  border:"none",
-  padding:10,
+const slider = {
+  position:"absolute",
+  top:4,
+  left:4,
+  width:"33.33%",
+  height:"calc(100% - 8px)",
+  background:"#000",
   borderRadius:10,
-  cursor:"pointer"
-};
-
-const input = {
-  width:"100%",
-  padding:14,
-  marginBottom:10,
-  borderRadius:12,
-  border:"1px solid #ddd"
-};
-
-const row = {display:"flex", gap:10};
-
-const card = {
-  padding:16,
-  borderRadius:16,
-  background:"#fff",
-  marginBottom:12,
-  boxShadow:"0 10px 30px rgba(0,0,0,0.1)"
-};
-
-const taskHeader = {display:"flex", gap:10};
-
-const deleteBtn = {
-  width:32,
-  height:32,
-  borderRadius:"50%",
-  border:"none"
-};
-
-const segmented = {
-  display: "flex",
-  background: "#eee",
-  borderRadius: 12,
-  overflow: "hidden",
-  marginTop: 10,
-  marginBottom: 14   // 👈 THIS ADDS GAP
+  transition:"transform 0.28s cubic-bezier(0.34,1.56,0.64,1)"
 };
 
 const segmentItem = {
   flex:1,
-  padding:10,
   textAlign:"center",
-  cursor:"pointer"
+  padding:10,
+  cursor:"pointer",
+  zIndex:1,
+  transition:"transform 0.15s"
 };
 
-const amount = {textAlign:"right"};
+const amount = { textAlign:"right" };
 
-const addBtn = {
-  width:"100%",
-  padding:14,
-  borderRadius:12,
-  background:"#000",
-  color:"#fff"
-};
-
-const preview = {
-  marginTop:20,
-  padding:15,
-  borderRadius:16,
-  background:"#fff",
-  boxShadow:"0 10px 30px rgba(0,0,0,0.08)"
-};
+const addBtn = { width:"100%", padding:14, borderRadius:12, background:"#000", color:"#fff" };
 
 const floating = {
   position:"fixed",
@@ -340,10 +294,7 @@ const floating = {
   padding:"14px 18px",
   borderRadius:25,
   background:"rgba(255,255,255,0.7)",
-  backdropFilter:"blur(20px)",
-  boxShadow:"0 20px 40px rgba(0,0,0,0.2)",
-  fontWeight:"600",
-  cursor:"grab"
+  backdropFilter:"blur(20px)"
 };
 
 const generateBtn = {
@@ -351,12 +302,9 @@ const generateBtn = {
   bottom:20,
   left:"50%",
   transform:"translateX(-50%)",
-  width:"92%",
-  maxWidth:420,
+  width:"90%",
   padding:16,
   borderRadius:16,
   background:"#000",
-  color:"#fff",
-  border:"none",
-  fontWeight:"600"
+  color:"#fff"
 };
