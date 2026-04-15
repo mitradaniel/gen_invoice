@@ -16,29 +16,9 @@ export async function POST(req) {
       total = 0
     } = body || {};
 
-    let pdfDoc;
-
-    /* ===== LOAD TEMPLATE FROM PUBLIC URL ===== */
-    try {
-      const baseUrl =
-        process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
-
-      const res = await fetch(`${baseUrl}/Invoice_Template.pdf`);
-
-      if (!res.ok) throw new Error("Template fetch failed");
-
-      const arrayBuffer = await res.arrayBuffer();
-
-      pdfDoc = await PDFDocument.load(arrayBuffer);
-
-    } catch (err) {
-      console.log("⚠️ Using blank PDF:", err.message);
-
-      pdfDoc = await PDFDocument.create();
-      pdfDoc.addPage([595, 842]);
-    }
-
-    const page = pdfDoc.getPages()[0];
+    /* ===== CREATE NEW PDF (NO TEMPLATE) ===== */
+    const pdfDoc = await PDFDocument.create();
+    const page = pdfDoc.addPage([595, 842]);
 
     const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
     const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
@@ -46,7 +26,7 @@ export async function POST(req) {
     const { width, height } = page.getSize();
 
     /* ===== TO ADDRESS ===== */
-    let y = height - 120;
+    let y = height - 100;
 
     (to || "").split("\n").forEach((line) => {
       page.drawText(line, { x: 50, y, size: 10, font });
@@ -55,7 +35,6 @@ export async function POST(req) {
 
     /* ===== SUBJECT ===== */
     y -= 10;
-
     page.drawText(`Subject: ${subject}`, {
       x: 50,
       y,
@@ -79,7 +58,7 @@ export async function POST(req) {
     });
 
     /* ===== TASKS ===== */
-    let taskY = height - 230;
+    let taskY = height - 220;
 
     (tasks || []).forEach((t, i) => {
       const amount =
@@ -104,20 +83,19 @@ export async function POST(req) {
       taskY -= 18;
     });
 
-    /* ===== CALCULATIONS ===== */
+    /* ===== TOTALS ===== */
     let calcY = taskY - 20;
-    const rightX = width - 160;
 
     const drawLine = (label, value, bold = false) => {
       page.drawText(label, {
-        x: rightX,
+        x: width - 160,
         y: calcY,
         size: 10,
         font: bold ? boldFont : font,
       });
 
       page.drawText(`₹ ${Number(value || 0).toFixed(0)}`, {
-        x: rightX + 80,
+        x: width - 80,
         y: calcY,
         size: 10,
         font: bold ? boldFont : font,
@@ -135,6 +113,7 @@ export async function POST(req) {
     const pdfBytes = await pdfDoc.save();
 
     return new Response(pdfBytes, {
+      status: 200,
       headers: {
         "Content-Type": "application/pdf",
         "Content-Disposition": `inline; filename="${invoice}.pdf`,
@@ -142,7 +121,7 @@ export async function POST(req) {
     });
 
   } catch (err) {
-    console.error("❌ ERROR:", err);
+    console.error("🔥 FINAL ERROR:", err);
 
     return new Response(
       JSON.stringify({ error: err.message }),
