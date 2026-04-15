@@ -1,4 +1,6 @@
-import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
+import { PDFDocument, StandardFonts } from "pdf-lib";
+import fs from "fs";
+import path from "path";
 
 export async function POST(req) {
   try {
@@ -16,30 +18,28 @@ export async function POST(req) {
       total
     } = body;
 
-    const pdfDoc = await PDFDocument.create();
-    const page = pdfDoc.addPage([595, 842]); // A4
+    /* ===== LOAD TEMPLATE ===== */
+    const filePath = path.join(process.cwd(), "public", "Invoice_Template.pdf");
+    const existingPdfBytes = fs.readFileSync(filePath);
+
+    const pdfDoc = await PDFDocument.load(existingPdfBytes);
+    const page = pdfDoc.getPages()[0];
 
     const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
     const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
 
     const { width, height } = page.getSize();
 
-    let y = height - 50;
+    /* ================= POSITIONS (ADJUSTABLE) ================= */
 
-    /* ================= HEADER ================= */
+    let yStart = height - 120;
 
-    // TO ADDRESS (LEFT)
-    page.drawText("To,", {
-      x: 50,
-      y,
-      size: 11,
-      font: boldFont
-    });
-
-    y -= 15;
+    /* ===== TO ADDRESS ===== */
+    let y = yStart;
 
     const toLines = to.split("\n");
-    toLines.forEach(line => {
+
+    toLines.forEach((line) => {
       page.drawText(line, {
         x: 50,
         y,
@@ -49,35 +49,31 @@ export async function POST(req) {
       y -= 14;
     });
 
-    // RIGHT SIDE (DATE + INVOICE)
-    page.drawText(`Date: ${date}`, {
-      x: width - 200,
-      y: height - 50,
-      size: 10,
-      font
-    });
-
-    page.drawText(`Invoice No: ${invoice}`, {
-      x: width - 200,
-      y: height - 65,
-      size: 10,
-      font
-    });
-
-    /* ================= SUBJECT ================= */
-
-    y -= 20;
-
+    /* ===== SUBJECT ===== */
     page.drawText(`Subject: ${subject}`, {
       x: 50,
-      y,
+      y: y - 10,
       size: 11,
       font: boldFont
     });
 
-    y -= 25;
+    /* ===== DATE + INVOICE (RIGHT) ===== */
+    page.drawText(date, {
+      x: width - 150,
+      y: height - 80,
+      size: 10,
+      font
+    });
 
-    /* ================= TASKS ================= */
+    page.drawText(invoice, {
+      x: width - 150,
+      y: height - 100,
+      size: 10,
+      font
+    });
+
+    /* ===== TASKS ===== */
+    let taskY = height - 250;
 
     tasks.forEach((t, i) => {
       const amount =
@@ -85,61 +81,58 @@ export async function POST(req) {
           ? t.amount || 0
           : (t.qty || 0) * (t.rate || 0);
 
-      const description =
+      const text =
         t.type === "direct"
-          ? `${i + 1}. ${t.name} — ₹ ${amount}`
-          : `${i + 1}. ${t.name} (${t.qty} × ${t.rate}) — ₹ ${amount}`;
+          ? `${i + 1}. ${t.name}`
+          : `${i + 1}. ${t.name} (${t.qty} x ${t.rate})`;
 
-      page.drawText(description, {
+      page.drawText(text, {
         x: 60,
-        y,
+        y: taskY,
         size: 10,
         font
       });
 
-      y -= 18;
+      page.drawText(`₹ ${amount.toFixed(0)}`, {
+        x: width - 100,
+        y: taskY,
+        size: 10,
+        font
+      });
+
+      taskY -= 18;
     });
 
-    /* ================= CALCULATIONS ================= */
+    /* ===== CALCULATIONS ===== */
 
-    y -= 30;
+    let calcY = taskY - 30;
 
-    const rightX = width - 200;
+    const rightX = width - 150;
 
-    const drawRight = (label, value, bold = false) => {
+    const drawLine = (label, value, bold = false) => {
       page.drawText(label, {
         x: rightX,
-        y,
+        y: calcY,
         size: 10,
         font: bold ? boldFont : font
       });
 
       page.drawText(`₹ ${value.toFixed(0)}`, {
-        x: rightX + 100,
-        y,
+        x: rightX + 80,
+        y: calcY,
         size: 10,
         font: bold ? boldFont : font
       });
 
-      y -= 15;
+      calcY -= 15;
     };
 
-    drawRight("Subtotal:", subtotal);
-    drawRight("SGST (9%):", sgst);
-    drawRight("CGST (9%):", cgst);
-    drawRight("Total:", total, true);
+    drawLine("Subtotal:", subtotal);
+    drawLine("SGST:", sgst);
+    drawLine("CGST:", cgst);
+    drawLine("Total:", total, true);
 
-    /* ================= FOOTER ================= */
-
-    page.drawText("Thank you for your business!", {
-      x: 50,
-      y: 50,
-      size: 10,
-      font,
-      color: rgb(0.4, 0.4, 0.4)
-    });
-
-    /* ================= SAVE ================= */
+    /* ===== SAVE ===== */
 
     const pdfBytes = await pdfDoc.save();
 
@@ -151,6 +144,7 @@ export async function POST(req) {
     });
 
   } catch (err) {
-    return new Response("Error generating PDF", { status: 500 });
+    console.error(err);
+    return new Response("PDF generation failed", { status: 500 });
   }
 }
