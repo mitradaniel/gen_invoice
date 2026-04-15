@@ -7,7 +7,33 @@ export default function Page() {
   const [loading, setLoading] = useState(false);
 
   const [docType, setDocType] = useState("INVOICE"); // ✅ ADDED
+<div style={{
+  display: "flex",
+  background: "#e5e7eb",
+  borderRadius: 14,
+  padding: 4,
+  marginBottom: 12
+}}>
+  {["INVOICE", "QUOTATION"].map(type => (
+    <div
+      key={type}
+      onClick={() => setDocType(type)}
+      style={{
+        flex: 1,
+        textAlign: "center",
+        padding: 10,
+        borderRadius: 10,
+        cursor: "pointer",
+        background: docType === type ? "#000" : "transparent",
+        color: docType === type ? "#fff" : "#666"
+      }}
+    >
+      {type}
+    </div>
+  ))}
+</div>
 
+  
   const [tasks, setTasks] = useState([
     { id: Date.now(), name: "", qty: 0, rate: 0, amount: 0, type: "sqft" }
   ]);
