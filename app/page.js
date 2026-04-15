@@ -282,11 +282,12 @@ const deleteBtn = {
 };
 
 const segmented = {
-  display:"flex",
-  background:"#eee",
-  borderRadius:10,
-  overflow:"hidden",
-  marginTop:10
+  display: "flex",
+  background: "#eee",
+  borderRadius: 12,
+  overflow: "hidden",
+  marginTop: 10,
+  marginBottom: 14   // 👈 THIS ADDS GAP
 };
 
 const segmentItem = {
