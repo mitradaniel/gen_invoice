@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react";
 export default function Page() {
 
   const [dark, setDark] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const [tasks, setTasks] = useState([
     { id: Date.now(), name: "", qty: 0, rate: 0, amount: 0, type: "sqft" }
@@ -13,9 +14,8 @@ export default function Page() {
   const [invoice, setInvoice] = useState("2026/27/001");
   const [date, setDate] = useState("");
   const [to, setTo] = useState("");
-  const [loading, setLoading] = useState(false);
 
-  /* ===== DRAG ===== */
+  /* ===== FLOATING ===== */
   const [pos, setPos] = useState({ x: 260, y: 10 });
   const dragging = useRef(false);
   const offset = useRef({ x: 0, y: 0 });
@@ -120,91 +120,72 @@ export default function Page() {
 
       {/* HEADER */}
       <div style={header}>
-        <h2>Invoice Generator</h2>
-        <button onClick={() => setDark(!dark)} style={toggle}>
-          {dark ? "☀️" : "🌙"}
-        </button>
+        <h2 style={{ margin: 0 }}>Invoice Generator</h2>
+
+        <div style={{ display: "flex", gap: 10 }}>
+          <button onClick={generatePDF} style={topBtn}>
+            {loading ? "..." : "PDF"}
+          </button>
+
+          <button onClick={() => setDark(!dark)} style={toggle}>
+            {dark ? "☀️" : "🌙"}
+          </button>
+        </div>
       </div>
 
       {/* FORM */}
       <div style={formWrapper}>
 
-        <textarea
-          placeholder="To Address"
-          value={to}
-          onChange={(e) => setTo(e.target.value)}
-          style={input}
-        />
-
-        <input
-          placeholder="Subject"
-          value={subject}
-          onChange={(e) => setSubject(e.target.value)}
-          style={input}
-        />
+        <textarea placeholder="To Address" value={to} onChange={(e)=>setTo(e.target.value)} style={input}/>
+        <input placeholder="Subject" value={subject} onChange={(e)=>setSubject(e.target.value)} style={input}/>
 
         <div style={row}>
-          <input value={invoice} onChange={(e) => setInvoice(e.target.value)} style={input}/>
-          <input type="date" onChange={(e) => setDate(e.target.value)} style={input}/>
+          <input value={invoice} onChange={(e)=>setInvoice(e.target.value)} style={input}/>
+          <input type="date" onChange={(e)=>setDate(e.target.value)} style={input}/>
         </div>
 
-        {tasks.map((t) => (
+        {tasks.map((t)=>(
           <div key={t.id} style={card}>
 
             <div style={taskHeader}>
-              <input
-                placeholder="Task"
-                value={t.name}
-                onChange={(e) => updateTask(t.id, "name", e.target.value)}
-                style={{...input, marginBottom:0}}
-              />
-              <button onClick={() => deleteTask(t.id)} style={deleteBtn}>✕</button>
+              <input value={t.name} onChange={(e)=>updateTask(t.id,"name",e.target.value)} style={{...input,marginBottom:0}}/>
+              <button onClick={()=>deleteTask(t.id)} style={deleteBtn}>✕</button>
             </div>
 
-            {/* 🔥 iOS TOGGLE */}
+            {/* iOS TOGGLE */}
             <div style={segmentedContainer}>
-              <div
-                style={{
-                  ...slider,
-                  transform:
-                    t.type === "sqft"
-                      ? "translateX(0%)"
-                      : t.type === "nos"
-                      ? "translateX(100%)"
-                      : "translateX(200%)"
-                }}
-              />
+              <div style={{
+                ...slider,
+                transform:
+                  t.type==="sqft"?"translateX(0%)":
+                  t.type==="nos"?"translateX(100%)":
+                  "translateX(200%)"
+              }}/>
 
-              {["sqft","nos","direct"].map(type => (
+              {["sqft","nos","direct"].map(type=>(
                 <div
                   key={type}
-                  onClick={() => {
-                    updateTask(t.id, "type", type);
-                    if (navigator.vibrate) navigator.vibrate(10);
-                  }}
-                  style={{
-                    ...segmentItem,
-                    color: t.type === type ? "#fff" : "#666"
-                  }}
-                  onMouseDown={(e) => e.currentTarget.style.transform = "scale(0.92)"}
-                  onMouseUp={(e) => e.currentTarget.style.transform = "scale(1)"}
-                  onMouseLeave={(e) => e.currentTarget.style.transform = "scale(1)"}
+                  onClick={()=>{updateTask(t.id,"type",type); navigator.vibrate?.(10);}}
+                  style={{...segmentItem, color:t.type===type?"#fff":"#666"}}
+                  onMouseDown={(e)=>e.currentTarget.style.transform="scale(0.92)"}
+                  onMouseUp={(e)=>e.currentTarget.style.transform="scale(1)"}
                 >
-                  {type === "sqft" ? "SQFT/RFT" : type === "nos" ? "Nos" : "Direct"}
+                  {type}
                 </div>
               ))}
             </div>
 
-            {t.type !== "direct" ? (
+            {t.type!=="direct"?(
               <div style={row}>
                 <input type="number" placeholder="Qty" onChange={(e)=>updateTask(t.id,"qty",+e.target.value)} style={input}/>
                 <input type="number" placeholder="Rate" onChange={(e)=>updateTask(t.id,"rate",+e.target.value)} style={input}/>
               </div>
-            ) : (
+            ):(
               <input type="number" placeholder="Amount" onChange={(e)=>updateTask(t.id,"amount",+e.target.value)} style={input}/>
             )}
 
             <div style={amount}>₹ {getTotal(t).toLocaleString()}</div>
+
           </div>
         ))}
 
@@ -213,21 +194,10 @@ export default function Page() {
       </div>
 
       {/* FLOATING TOTAL */}
-      <div
-        onMouseDown={startDrag}
-        style={{
-          ...floating,
-          transform:`translate(${pos.x}px,${pos.y}px)`
-        }}
-      >
+      <div onMouseDown={startDrag} style={{...floating, transform:`translate(${pos.x}px,${pos.y}px)`}}>
         ₹ {total.toLocaleString()}
-        <div style={{fontSize:12, opacity:0.6}}>Incl. GST</div>
+        <div style={{fontSize:12,opacity:0.6}}>Incl. GST</div>
       </div>
-
-      {/* GENERATE */}
-      <button onClick={generatePDF} style={generateBtn}>
-        {loading ? "Generating..." : "Generate PDF"}
-      </button>
 
     </div>
   );
@@ -235,9 +205,11 @@ export default function Page() {
 
 /* ===== STYLES ===== */
 
-const container = { maxWidth: 520, margin: "auto", padding: 20 };
+const container = { maxWidth:520, margin:"auto", padding:20 };
 
-const header = { display:"flex", justifyContent:"space-between", alignItems:"center" };
+const header = { display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 };
+
+const topBtn = { padding:"10px 14px", borderRadius:10, border:"none", background:"#000", color:"#fff", cursor:"pointer" };
 
 const toggle = { padding:10, borderRadius:10, border:"none", cursor:"pointer" };
 
@@ -253,58 +225,14 @@ const taskHeader = { display:"flex", gap:10 };
 
 const deleteBtn = { width:32, height:32, borderRadius:"50%", border:"none" };
 
-const segmentedContainer = {
-  position:"relative",
-  display:"flex",
-  background:"#e5e7eb",
-  borderRadius:14,
-  padding:4,
-  marginTop:10,
-  marginBottom:14
-};
+const segmentedContainer = { position:"relative", display:"flex", background:"#e5e7eb", borderRadius:14, padding:4, marginTop:10, marginBottom:14 };
 
-const slider = {
-  position:"absolute",
-  top:4,
-  left:4,
-  width:"33.33%",
-  height:"calc(100% - 8px)",
-  background:"#000",
-  borderRadius:10,
-  transition:"transform 0.28s cubic-bezier(0.34,1.56,0.64,1)"
-};
+const slider = { position:"absolute", top:4, left:4, width:"33.33%", height:"calc(100% - 8px)", background:"#000", borderRadius:10, transition:"transform 0.28s cubic-bezier(0.34,1.56,0.64,1)" };
 
-const segmentItem = {
-  flex:1,
-  textAlign:"center",
-  padding:10,
-  cursor:"pointer",
-  zIndex:1,
-  transition:"transform 0.15s"
-};
+const segmentItem = { flex:1, textAlign:"center", padding:10, cursor:"pointer", zIndex:1 };
 
 const amount = { textAlign:"right" };
 
 const addBtn = { width:"100%", padding:14, borderRadius:12, background:"#000", color:"#fff" };
 
-const floating = {
-  position:"fixed",
-  top:0,
-  left:0,
-  padding:"14px 18px",
-  borderRadius:25,
-  background:"rgba(255,255,255,0.7)",
-  backdropFilter:"blur(20px)"
-};
-
-const generateBtn = {
-  position:"fixed",
-  bottom:20,
-  left:"50%",
-  transform:"translateX(-50%)",
-  width:"90%",
-  padding:16,
-  borderRadius:16,
-  background:"#000",
-  color:"#fff"
-};
+const floating = { position:"fixed", top:0, left:0, padding:"14px 18px", borderRadius:25, background:"rgba(255,255,255,0.7)", backdropFilter:"blur(20px)" };
