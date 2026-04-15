@@ -72,7 +72,7 @@ export async function POST(req) {
     });
 
     page.drawText(`Invoice: ${invoice}`, {
-      x: width - 180,
+      x: width - 150,
       y: 650,
       size: 10,
       font
