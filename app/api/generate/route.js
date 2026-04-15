@@ -2,7 +2,7 @@ import { PDFDocument, StandardFonts } from "pdf-lib";
 import fs from "fs";
 import path from "path";
 
-/* ✅ REQUIRED for fs */
+/* ✅ REQUIRED for fs in Next.js */
 export const runtime = "nodejs";
 
 export async function POST(req) {
@@ -23,7 +23,7 @@ export async function POST(req) {
 
     let pdfDoc;
 
-    /* ===== LOAD TEMPLATE ===== */
+    /* ================= SAFE TEMPLATE LOAD ================= */
     try {
       const filePath = path.join(
         process.cwd(),
@@ -31,24 +31,32 @@ export async function POST(req) {
         "Invoice_Template.pdf"
       );
 
-      if (fs.existsSync(filePath)) {
-        const existingPdfBytes = fs.readFileSync(filePath);
-
-        pdfDoc = await PDFDocument.load(existingPdfBytes, {
-          ignoreEncryption: true,
-        });
-      } else {
+      if (!fs.existsSync(filePath)) {
         throw new Error("Template not found");
       }
+
+      const existingPdfBytes = fs.readFileSync(filePath);
+
+      pdfDoc = await PDFDocument.load(existingPdfBytes, {
+        ignoreEncryption: true,
+      });
+
     } catch (err) {
-      console.log("⚠️ Using blank PDF fallback");
+      console.log("⚠️ Template load failed:", err.message);
 
       pdfDoc = await PDFDocument.create();
+    }
+
+    /* ================= ENSURE PAGE EXISTS ================= */
+    let pages = pdfDoc.getPages();
+
+    if (!pages || pages.length === 0) {
       pdfDoc.addPage([595, 842]); // A4
     }
 
     const page = pdfDoc.getPages()[0];
 
+    /* ================= FONTS ================= */
     const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
     const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
 
@@ -57,9 +65,7 @@ export async function POST(req) {
     /* ================= TO ADDRESS ================= */
     let y = height - 120;
 
-    const toLines = to.split("\n");
-
-    toLines.forEach((line) => {
+    to.split("\n").forEach((line) => {
       page.drawText(line, {
         x: 50,
         y,
@@ -156,7 +162,7 @@ export async function POST(req) {
     /* ================= SAVE ================= */
     const pdfBytes = await pdfDoc.save();
 
-    /* 🔥 CRITICAL FIX (NO CORRUPTION) */
+    /* 🔥 CRITICAL FIX (prevents corruption) */
     const pdfBuffer = Buffer.from(pdfBytes);
 
     return new Response(pdfBuffer, {
@@ -168,10 +174,11 @@ export async function POST(req) {
     });
 
   } catch (err) {
-    console.error("❌ PDF ERROR:", err);
+    console.error("❌ FINAL PDF ERROR:", err);
 
-    return new Response("PDF generation failed", {
-      status: 500,
-    });
+    return new Response(
+      JSON.stringify({ error: err.message }),
+      { status: 500 }
+    );
   }
 }
