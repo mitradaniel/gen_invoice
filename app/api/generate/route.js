@@ -78,6 +78,13 @@ export async function POST(req) {
       font
     });
 
+    page.drawText(`INVOICE`, {
+      x: width - 100,
+      y: 650,
+      size: 25,
+      font
+    }); 
+
     /* ================= SUBJECT (ALIGN WITH HEADER) ================= */
     page.drawText(`Subject: ${subject}`, {
       x: 50,
