@@ -1,8 +1,4 @@
 import { PDFDocument, StandardFonts } from "pdf-lib";
-import fs from "fs";
-import path from "path";
-
-export const runtime = "nodejs";
 
 export async function POST(req) {
   try {
@@ -22,31 +18,28 @@ export async function POST(req) {
 
     let pdfDoc;
 
-    /* ===== SAFE TEMPLATE LOAD ===== */
+    /* ===== LOAD TEMPLATE FROM PUBLIC URL ===== */
     try {
-      const filePath = path.join(process.cwd(), "public", "Invoice_Template.pdf");
+      const baseUrl =
+        process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
 
-      if (fs.existsSync(filePath)) {
-        const existingPdfBytes = fs.readFileSync(filePath);
-        pdfDoc = await PDFDocument.load(existingPdfBytes, {
-          ignoreEncryption: true,
-        });
-      } else {
-        throw new Error("Template not found");
-      }
+      const res = await fetch(`${baseUrl}/Invoice_Template.pdf`);
+
+      if (!res.ok) throw new Error("Template fetch failed");
+
+      const arrayBuffer = await res.arrayBuffer();
+
+      pdfDoc = await PDFDocument.load(arrayBuffer);
+
     } catch (err) {
       console.log("⚠️ Using blank PDF:", err.message);
-      pdfDoc = await PDFDocument.create();
-    }
 
-    /* ===== ENSURE PAGE ===== */
-    if (pdfDoc.getPages().length === 0) {
+      pdfDoc = await PDFDocument.create();
       pdfDoc.addPage([595, 842]);
     }
 
     const page = pdfDoc.getPages()[0];
 
-    /* ===== FONTS ===== */
     const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
     const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
 
@@ -55,9 +48,7 @@ export async function POST(req) {
     /* ===== TO ADDRESS ===== */
     let y = height - 120;
 
-    const safeTo = typeof to === "string" ? to : "";
-
-    safeTo.split("\n").forEach((line) => {
+    (to || "").split("\n").forEach((line) => {
       page.drawText(line, { x: 50, y, size: 10, font });
       y -= 14;
     });
@@ -65,7 +56,7 @@ export async function POST(req) {
     /* ===== SUBJECT ===== */
     y -= 10;
 
-    page.drawText(`Subject: ${subject || ""}`, {
+    page.drawText(`Subject: ${subject}`, {
       x: 50,
       y,
       size: 11,
@@ -73,14 +64,14 @@ export async function POST(req) {
     });
 
     /* ===== DATE + INVOICE ===== */
-    page.drawText(`Date: ${date || ""}`, {
+    page.drawText(`Date: ${date}`, {
       x: width - 180,
       y: height - 60,
       size: 10,
       font,
     });
 
-    page.drawText(`Invoice: ${invoice || ""}`, {
+    page.drawText(`Invoice: ${invoice}`, {
       x: width - 180,
       y: height - 75,
       size: 10,
@@ -101,12 +92,7 @@ export async function POST(req) {
           ? `${i + 1}. ${t?.name || ""}`
           : `${i + 1}. ${t?.name || ""} (${t?.qty || 0} x ${t?.rate || 0})`;
 
-      page.drawText(text, {
-        x: 60,
-        y: taskY,
-        size: 10,
-        font,
-      });
+      page.drawText(text, { x: 60, y: taskY, size: 10, font });
 
       page.drawText(`₹ ${amount.toFixed(0)}`, {
         x: width - 100,
@@ -147,18 +133,16 @@ export async function POST(req) {
 
     /* ===== SAVE ===== */
     const pdfBytes = await pdfDoc.save();
-    const pdfBuffer = Buffer.from(pdfBytes);
 
-    return new Response(pdfBuffer, {
-      status: 200,
+    return new Response(pdfBytes, {
       headers: {
         "Content-Type": "application/pdf",
-        "Content-Disposition": `inline; filename="${invoice || "invoice"}.pdf`,
+        "Content-Disposition": `inline; filename="${invoice}.pdf`,
       },
     });
 
   } catch (err) {
-    console.error("❌ FINAL ERROR:", err);
+    console.error("❌ ERROR:", err);
 
     return new Response(
       JSON.stringify({ error: err.message }),
