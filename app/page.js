@@ -122,7 +122,7 @@ export default function Page() {
 
       {/* HEADER */}
       <div style={header}>
-        <h2 style={{ margin: 0 }}>Invoice Generator</h2>
+        <h2 style={{ margin: 0 }}>Khemraj M Rasganya - Invoice Generator</h2>
 
         <div style={{ display: "flex", gap: 10 }}>
           <button onClick={generatePDF} style={topBtn}>
