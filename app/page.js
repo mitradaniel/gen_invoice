@@ -6,7 +6,7 @@ export default function Page() {
   const [dark, setDark] = useState(false);
   const [loading, setLoading] = useState(false);
   const [docType, setDocType] = useState("INVOICE");
-
+  const [remarks, setRemarks] = useState("");
   const [tasks, setTasks] = useState([
     { id: Date.now(), name: "", qty: 0, rate: 0, amount: 0, type: "sqft" }
   ]);
@@ -140,7 +140,7 @@ export default function Page() {
 
         <textarea placeholder="To Address" value={to} onChange={(e)=>setTo(e.target.value)} style={input}/>
         <input placeholder="Subject" value={subject} onChange={(e)=>setSubject(e.target.value)} style={input}/>
-
+        <textarea placeholder="Remarks (optional)" value={remarks} onChange={(e)=>setRemarks(e.target.value)} style={input}/>
         {/* INVOICE / QUOTATION */}
         <div style={segmentedContainer}>
           {["INVOICE","QUOTATION"].map(type=>(
