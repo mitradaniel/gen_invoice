@@ -1,6 +1,4 @@
-import { PDFDocument } from "pdf-lib";
-import fs from "fs";
-import path from "path";
+import { PDFDocument, StandardFonts } from "pdf-lib";
 
 export const runtime = "nodejs";
 
@@ -33,26 +31,11 @@ export async function POST(req) {
       remarks = ""
     } = body;
 
-    /* ===== LOAD FONT ===== */
-    const fontPath = path.join(
-      process.cwd(),
-      "public",
-      "fonts",
-      "NotoSans-Regular.ttf"
-    );
-
-    if (!fs.existsSync(fontPath)) {
-      throw new Error("Font not found: /public/fonts/NotoSans-Regular.ttf");
-    }
-
-    const fontBytes = fs.readFileSync(fontPath);
-
-    /* ===== CREATE PDF ===== */
     const pdfDoc = await PDFDocument.create();
     let page = pdfDoc.addPage([595, 842]);
 
-    const font = await pdfDoc.embedFont(fontBytes);
-    const bold = font;
+    const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+    const bold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
 
     let y = 800;
 
@@ -112,8 +95,8 @@ export async function POST(req) {
 
       const line =
         t.type === "direct"
-          ? `₹ ${formatINR(val)}`
-          : `${t.qty || 0} × ${formatINR(t.rate)} = ₹ ${formatINR(val)}`;
+          ? `Rs. ${formatINR(val)}`
+          : `${t.qty || 0} × ${formatINR(t.rate)} = Rs. ${formatINR(val)}`;
 
       page.drawText(line, {
         x: 70,
@@ -147,7 +130,7 @@ export async function POST(req) {
     }
 
     /* ===== TOTALS ===== */
-    page.drawText(`Subtotal: ₹ ${formatINR(subtotal)}`, {
+    page.drawText(`Subtotal: Rs. ${formatINR(subtotal)}`, {
       x: 50,
       y,
       size: 11,
@@ -156,7 +139,7 @@ export async function POST(req) {
 
     y -= 15;
 
-    page.drawText(`SGST: ₹ ${formatINR(sgst)}`, {
+    page.drawText(`SGST: Rs. ${formatINR(sgst)}`, {
       x: 50,
       y,
       size: 11,
@@ -165,7 +148,7 @@ export async function POST(req) {
 
     y -= 15;
 
-    page.drawText(`CGST: ₹ ${formatINR(cgst)}`, {
+    page.drawText(`CGST: Rs. ${formatINR(cgst)}`, {
       x: 50,
       y,
       size: 11,
@@ -174,7 +157,7 @@ export async function POST(req) {
 
     y -= 20;
 
-    page.drawText(`Grand Total: ₹ ${formatINR(total)}`, {
+    page.drawText(`Grand Total: Rs. ${formatINR(total)}`, {
       x: 50,
       y,
       size: 12,
