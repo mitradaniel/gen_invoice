@@ -24,7 +24,6 @@ export async function POST(req) {
 
     const { width, height } = page.getSize();
 
-    /* ===== HEADER ===== */
     let y = height - 80;
 
     (to || "").split("\n").forEach(line => {
@@ -55,19 +54,18 @@ export async function POST(req) {
       font
     });
 
-    /* ===== TASKS ===== */
     let taskY = height - 200;
 
     (tasks || []).forEach((t, i) => {
       const amount =
-        t.type === "direct"
-          ? t.amount || 0
-          : (t.qty || 0) * (t.rate || 0);
+        t?.type === "direct"
+          ? t?.amount || 0
+          : (t?.qty || 0) * (t?.rate || 0);
 
       const label =
-        t.type === "direct"
-          ? `${i + 1}. ${t.name}`
-          : `${i + 1}. ${t.name} (${t.qty} x ${t.rate})`;
+        t?.type === "direct"
+          ? `${i + 1}. ${t?.name || ""}`
+          : `${i + 1}. ${t?.name || ""} (${t?.qty || 0} x ${t?.rate || 0})`;
 
       page.drawText(label, { x: 50, y: taskY, size: 10, font });
 
@@ -81,7 +79,6 @@ export async function POST(req) {
       taskY -= 18;
     });
 
-    /* ===== TOTAL ===== */
     let calcY = taskY - 20;
 
     const draw = (label, value, bold = false) => {
@@ -92,7 +89,7 @@ export async function POST(req) {
         font: bold ? boldFont : font
       });
 
-      page.drawText(`₹ ${Number(value).toFixed(0)}`, {
+      page.drawText(`₹ ${Number(value || 0).toFixed(0)}`, {
         x: width - 80,
         y: calcY,
         size: 10,
@@ -109,16 +106,21 @@ export async function POST(req) {
 
     const pdfBytes = await pdfDoc.save();
 
+    console.log("PDF generated successfully");
+
     return new Response(pdfBytes, {
+      status: 200,
       headers: {
-        "Content-Type": "application/pdf",
-        "Content-Disposition": "inline; filename=invoice.pdf"
+        "Content-Type": "application/pdf"
       }
     });
 
   } catch (err) {
-    console.error("PDF ERROR:", err);
+    console.error("❌ PDF ERROR:", err);
 
-    return new Response("Error generating PDF", { status: 500 });
+    return new Response(
+      JSON.stringify({ error: err.message }),
+      { status: 500 }
+    );
   }
 }
