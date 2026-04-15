@@ -21,7 +21,7 @@ export async function POST(req) {
     } = body;
 
     const pdfDoc = await PDFDocument.create();
-    let page = pdfDoc.addPage([595, 842]); // <-- FIXED (let)
+    let page = pdfDoc.addPage([595, 842]);
 
     const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
     const bold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
@@ -41,7 +41,7 @@ export async function POST(req) {
     y -= 15;
 
     (to || "").split("\n").forEach(line => {
-      page.drawText(line || "", { x: 50, y, size: 10, font });
+      page.drawText(line, { x: 50, y, size: 10, font });
       y -= 14;
     });
 
@@ -50,15 +50,13 @@ export async function POST(req) {
     page.drawText(`Subject: ${subject}`, { x: 50, y, size: 11, font: bold });
     y -= 25;
 
-    for (let i = 0; i < tasks.length; i++) {
-      const t = tasks[i];
-
+    tasks.forEach((t, i) => {
       const val =
         t.type === "direct"
-          ? Number(t.amount || 0)
-          : Number(t.qty || 0) * Number(t.rate || 0);
+          ? t.amount || 0
+          : (t.qty || 0) * (t.rate || 0);
 
-      page.drawText(`${i + 1}. ${t.name || ""}`, { x: 50, y, size: 10, font });
+      page.drawText(`${i + 1}. ${t.name}`, { x: 50, y, size: 10, font });
       y -= 14;
 
       const line =
@@ -68,7 +66,7 @@ export async function POST(req) {
 
       page.drawText(line, { x: 70, y, size: 10, font });
       y -= 20;
-    }
+    });
 
     if (remarks) {
       page.drawText("Remarks:", { x: 50, y, size: 11, font: bold });
@@ -92,18 +90,11 @@ export async function POST(req) {
     const pdfBytes = await pdfDoc.save();
 
     return new Response(pdfBytes, {
-      status: 200,
-      headers: {
-        "Content-Type": "application/pdf"
-      }
+      headers: { "Content-Type": "application/pdf" }
     });
 
   } catch (err) {
-    console.error("REAL ERROR:", err);
-
-    return new Response(
-      JSON.stringify({ error: err.message }),
-      { status: 500 }
-    );
+    console.error(err);
+    return new Response(err.message, { status: 500 });
   }
 }
