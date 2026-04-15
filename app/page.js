@@ -216,7 +216,7 @@ const toggle = { padding:10, borderRadius:10, border:"none", cursor:"pointer" };
 const formWrapper = {
   padding: 16,
   borderRadius: 20,
-  paddingBottom: 110   // 👈 CRITICAL FIX
+  paddingBottom: 150   // 👈 CRITICAL FIX
 };
 
 const input = { width:"100%", padding:14, marginBottom:10, borderRadius:12, border:"1px solid #ddd" };
