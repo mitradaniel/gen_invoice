@@ -18,7 +18,11 @@ export const runtime = "nodejs";
 
 export async function POST(req) {
   try {
-    const body = await req.json();
+        let body;
+    if (req.method === "POST") {
+      const formData = await req.formData();
+      body = JSON.parse(formData.get("data"));
+    }
 
     const {
       tasks = [],
