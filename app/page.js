@@ -82,44 +82,44 @@ export default function Page() {
 
   /* ===== PDF ===== */
   const generatePDF = () => {
+  try {
+    setLoading(true);
 
-  const form = document.createElement("form");
-  form.method = "POST";
-  form.action = "/api/generate";
-  form.target = "_blank";
+    const form = document.createElement("form");
+    form.method = "POST";
+    form.action = "/api/generate";
+    form.target = "_blank";
 
-  const data = {
-    to,
-    tasks,
-    subject,
-    invoice,
-    date,
-    subtotal,
-    sgst: gst / 2,
-    cgst: gst / 2,
-    total,
-    docType,
-    remarks
-  };
+    const data = {
+      to,
+      tasks,
+      subject,
+      invoice,
+      date,
+      subtotal,
+      sgst: gst / 2,
+      cgst: gst / 2,
+      total,
+      docType,
+      remarks
+    };
 
-  const input = document.createElement("input");
-  input.type = "hidden";
-  input.name = "data";
-  input.value = JSON.stringify(data);
+    const input = document.createElement("input");
+    input.type = "hidden";
+    input.name = "data";
+    input.value = JSON.stringify(data);
 
-  form.appendChild(input);
-  document.body.appendChild(form);
-  form.submit();
-  form.remove();
+    form.appendChild(input);
+    document.body.appendChild(form);
+    form.submit();
+    form.remove();
+
+    setLoading(false);
+  } catch {
+    alert("PDF failed");
+    setLoading(false);
+  }
 };
-      
-      window.URL.revokeObjectURL(url);
-      setLoading(false);
-    } catch {
-      alert("PDF failed");
-      setLoading(false);
-    }
-  };
 
   return (
     <div style={{
