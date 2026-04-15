@@ -1,13 +1,9 @@
 "use client";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 
 export default function Page() {
 
   const [dark, setDark] = useState(false);
-  const [loading, setLoading] = useState(false);
-
-  const [docType, setDocType] = useState("INVOICE");
-  const [remarks, setRemarks] = useState("");
 
   const [tasks, setTasks] = useState([
     { id: Date.now(), name: "", qty: 0, rate: 0, amount: 0, type: "sqft" }
@@ -17,6 +13,42 @@ export default function Page() {
   const [invoice, setInvoice] = useState("2026/27/001");
   const [date, setDate] = useState("");
   const [to, setTo] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  /* ===== DRAG ===== */
+  const [pos, setPos] = useState({ x: 260, y: 10 });
+  const dragging = useRef(false);
+  const offset = useRef({ x: 0, y: 0 });
+
+  const startDrag = (e) => {
+    dragging.current = true;
+    const rect = e.currentTarget.getBoundingClientRect();
+    offset.current = {
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top
+    };
+  };
+
+  const onMove = (e) => {
+    if (!dragging.current) return;
+    setPos({
+      x: e.clientX - offset.current.x,
+      y: e.clientY - offset.current.y
+    });
+  };
+
+  const stopDrag = () => dragging.current = false;
+
+  useEffect(() => {
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", stopDrag);
+    return () => {
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", stopDrag);
+    };
+  }, []);
+
+  /* ===== LOGIC ===== */
 
   const updateTask = (id, field, value) => {
     setTasks(tasks.map(t => t.id === id ? { ...t, [field]: value } : t));
@@ -47,6 +79,7 @@ export default function Page() {
   const gst = subtotal * 0.18;
   const total = subtotal + gst;
 
+  /* ===== PDF ===== */
   const generatePDF = async () => {
     try {
       setLoading(true);
@@ -63,133 +96,249 @@ export default function Page() {
           subtotal,
           sgst: gst / 2,
           cgst: gst / 2,
-          total,
-          docType,
-          remarks
+          total
         })
       });
-
-      if (!res.ok) {
-        const err = await res.text();
-        alert("PDF ERROR: " + err);
-        return;
-      }
 
       const blob = await res.blob();
       const url = window.URL.createObjectURL(blob);
       window.open(url);
 
+      setLoading(false);
+
     } catch (err) {
-      console.error(err);
       alert("PDF failed");
-    } finally {
       setLoading(false);
     }
   };
 
   return (
     <div style={{
-      maxWidth: 520,
-      margin: "auto",
-      padding: 20,
-      background: dark ? "#0b0b0c" : "#f5f5f7"
+      ...container,
+      background: dark ? "#0b0b0c" : "#f5f5f7",
+      color: dark ? "#fff" : "#000"
     }}>
 
       {/* HEADER */}
-      <div style={{ display: "flex", justifyContent: "space-between" }}>
+      <div style={header}>
         <h2>Invoice Generator</h2>
+        <button onClick={() => setDark(!dark)} style={toggle}>
+          {dark ? "☀️" : "🌙"}
+        </button>
+      </div>
 
-        <div style={{ display: "flex", gap: 10 }}>
-          <button onClick={generatePDF} style={btn}>
-            {loading ? "..." : "PDF"}
-          </button>
+      {/* FORM WRAPPER (FIXED WIDTH ALIGNMENT) */}
+      <div style={formWrapper}>
 
-          <button onClick={() => setDark(!dark)} style={btn}>
-            {dark ? "☀️" : "🌙"}
-          </button>
+        <textarea
+          placeholder="To Address"
+          value={to}
+          onChange={(e) => setTo(e.target.value)}
+          style={input}
+        />
+
+        <input
+          placeholder="Subject"
+          value={subject}
+          onChange={(e) => setSubject(e.target.value)}
+          style={input}
+        />
+
+        <div style={row}>
+          <input value={invoice} onChange={(e) => setInvoice(e.target.value)} style={input}/>
+          <input type="date" onChange={(e) => setDate(e.target.value)} style={input}/>
         </div>
-      </div>
 
-      <textarea placeholder="To Address" value={to} onChange={(e)=>setTo(e.target.value)} style={input}/>
-      <input placeholder="Subject" value={subject} onChange={(e)=>setSubject(e.target.value)} style={input}/>
+        {tasks.map((t) => (
+          <div key={t.id} style={card}>
 
-      {/* DOC TYPE */}
-      <div style={segmented}>
-        <div style={{
-          ...slider2,
-          transform: docType === "INVOICE" ? "translateX(0%)" : "translateX(100%)"
-        }}/>
-        {["INVOICE","QUOTATION"].map(t => (
-          <div key={t} onClick={()=>setDocType(t)} style={segItem}>{t}</div>
-        ))}
-      </div>
-
-      <div style={{ display: "flex", gap: 10 }}>
-        <input value={invoice} onChange={(e)=>setInvoice(e.target.value)} style={input}/>
-        <input type="date" onChange={(e)=>setDate(e.target.value)} style={input}/>
-      </div>
-
-      {tasks.map(t => (
-        <div key={t.id} style={card}>
-
-          <input value={t.name} onChange={(e)=>updateTask(t.id,"name",e.target.value)} style={input}/>
-
-          {/* TASK TYPE */}
-          <div style={segmented}>
-            <div style={{
-              ...slider3,
-              transform:
-                t.type==="sqft"?"translateX(0%)":
-                t.type==="nos"?"translateX(100%)":
-                "translateX(200%)"
-            }}/>
-
-            {["sqft","nos","direct"].map(type => (
-              <div key={type} onClick={()=>updateTask(t.id,"type",type)} style={segItem}>
-                {type}
-              </div>
-            ))}
-          </div>
-
-          {t.type !== "direct" ? (
-            <div style={{ display: "flex", gap: 10 }}>
-              <input type="number" placeholder="Qty" onChange={(e)=>updateTask(t.id,"qty",+e.target.value)} style={input}/>
-              <input type="number" placeholder="Rate" onChange={(e)=>updateTask(t.id,"rate",+e.target.value)} style={input}/>
+            <div style={taskHeader}>
+              <input
+                placeholder="Task"
+                onChange={(e) => updateTask(t.id, "name", e.target.value)}
+                style={{...input, marginBottom:0}}
+              />
+              <button onClick={() => deleteTask(t.id)} style={deleteBtn}>✕</button>
             </div>
-          ) : (
-            <input type="number" placeholder="Amount" onChange={(e)=>updateTask(t.id,"amount",+e.target.value)} style={input}/>
-          )}
 
-          <div style={{ textAlign: "right" }}>
-            ₹ {getTotal(t).toLocaleString("en-IN")}
+            <div style={segmented}>
+              {["sqft","nos","direct"].map(type => (
+                <div key={type}
+                  onClick={() => updateTask(t.id,"type",type)}
+                  style={{
+                    ...segmentItem,
+                    background: t.type === type ? "#000" : "transparent",
+                    color: t.type === type ? "#fff" : "#777"
+                  }}>
+                  {type}
+                </div>
+              ))}
+            </div>
+
+            {t.type !== "direct" ? (
+              <div style={row}>
+                <input type="number" placeholder="Qty" onChange={(e)=>updateTask(t.id,"qty",+e.target.value)} style={input}/>
+                <input type="number" placeholder="Rate" onChange={(e)=>updateTask(t.id,"rate",+e.target.value)} style={input}/>
+              </div>
+            ) : (
+              <input type="number" placeholder="Amount" onChange={(e)=>updateTask(t.id,"amount",+e.target.value)} style={input}/>
+            )}
+
+            <div style={amount}>₹ {getTotal(t).toLocaleString()}</div>
           </div>
+        ))}
 
-        </div>
-      ))}
+        <button onClick={addTask} style={addBtn}>+ Add Task</button>
 
-      <button onClick={addTask} style={btn}>+ Add Task</button>
-
-      <textarea placeholder="Remarks" value={remarks} onChange={(e)=>setRemarks(e.target.value)} style={input}/>
-
-      <div style={floating}>
-        ₹ {total.toLocaleString("en-IN")}
-        <div style={{ fontSize: 12 }}>Incl. GST</div>
       </div>
+
+      {/* LIVE PREVIEW */}
+      <div style={preview}>
+        <h3>Live Preview</h3>
+        <div>{subject}</div>
+        {tasks.map((t,i)=>(
+          <div key={i}>{t.name} - ₹ {getTotal(t)}</div>
+        ))}
+        <hr/>
+        <b>Total: ₹ {total.toFixed(0)}</b>
+      </div>
+
+      {/* FLOATING TOTAL */}
+      <div
+        onMouseDown={startDrag}
+        style={{
+          ...floating,
+          transform:`translate(${pos.x}px,${pos.y}px)`
+        }}
+      >
+        ₹ {total.toLocaleString()}
+        <div style={{fontSize:12, opacity:0.6}}>Incl. GST</div>
+      </div>
+
+      {/* GENERATE BUTTON */}
+      <button onClick={generatePDF} style={generateBtn}>
+        {loading ? "Generating..." : "Generate PDF"}
+      </button>
 
     </div>
   );
 }
 
-/* STYLES */
-const input = { width:"100%", padding:12, marginBottom:10, borderRadius:10 };
-const btn = { padding:12, background:"#000", color:"#fff", borderRadius:10, border:"none" };
-const card = { padding:16, background:"#fff", borderRadius:16, marginBottom:12 };
+/* ===== STYLES ===== */
 
-const segmented = { position:"relative", display:"flex", background:"#e5e7eb", borderRadius:12, padding:4, marginBottom:10 };
+const container = {
+  maxWidth: 520,
+  margin: "auto",
+  padding: 20,
+  fontFamily: "Inter"
+};
 
-const slider2 = { position:"absolute", top:4, left:4, width:"50%", height:"calc(100% - 8px)", background:"#000", borderRadius:10 };
-const slider3 = { position:"absolute", top:4, left:4, width:"33.33%", height:"calc(100% - 8px)", background:"#000", borderRadius:10 };
+const formWrapper = {
+  background: "#ffffff10",
+  padding: 16,
+  borderRadius: 20,
+  backdropFilter: "blur(10px)"
+};
 
-const segItem = { flex:1, textAlign:"center", padding:10, zIndex:1, cursor:"pointer" };
+const header = {
+  display:"flex",
+  justifyContent:"space-between",
+  alignItems:"center",
+  marginBottom:10
+};
 
-const floating = { position:"fixed", bottom:90, right:20, padding:14, background:"#fff", borderRadius:16 };
+const toggle = {
+  border:"none",
+  padding:10,
+  borderRadius:10,
+  cursor:"pointer"
+};
+
+const input = {
+  width:"100%",
+  padding:14,
+  marginBottom:10,
+  borderRadius:12,
+  border:"1px solid #ddd"
+};
+
+const row = {display:"flex", gap:10};
+
+const card = {
+  padding:16,
+  borderRadius:16,
+  background:"#fff",
+  marginBottom:12,
+  boxShadow:"0 10px 30px rgba(0,0,0,0.1)"
+};
+
+const taskHeader = {display:"flex", gap:10};
+
+const deleteBtn = {
+  width:32,
+  height:32,
+  borderRadius:"50%",
+  border:"none"
+};
+
+const segmented = {
+  display: "flex",
+  background: "#eee",
+  borderRadius: 12,
+  overflow: "hidden",
+  marginTop: 10,
+  marginBottom: 14   // 👈 THIS ADDS GAP
+};
+
+const segmentItem = {
+  flex:1,
+  padding:10,
+  textAlign:"center",
+  cursor:"pointer"
+};
+
+const amount = {textAlign:"right"};
+
+const addBtn = {
+  width:"100%",
+  padding:14,
+  borderRadius:12,
+  background:"#000",
+  color:"#fff"
+};
+
+const preview = {
+  marginTop:20,
+  padding:15,
+  borderRadius:16,
+  background:"#fff",
+  boxShadow:"0 10px 30px rgba(0,0,0,0.08)"
+};
+
+const floating = {
+  position:"fixed",
+  top:0,
+  left:0,
+  padding:"14px 18px",
+  borderRadius:25,
+  background:"rgba(255,255,255,0.7)",
+  backdropFilter:"blur(20px)",
+  boxShadow:"0 20px 40px rgba(0,0,0,0.2)",
+  fontWeight:"600",
+  cursor:"grab"
+};
+
+const generateBtn = {
+  position:"fixed",
+  bottom:20,
+  left:"50%",
+  transform:"translateX(-50%)",
+  width:"92%",
+  maxWidth:420,
+  padding:16,
+  borderRadius:16,
+  background:"#000",
+  color:"#fff",
+  border:"none",
+  fontWeight:"600"
+};
