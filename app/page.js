@@ -194,7 +194,7 @@ export default function Page() {
       </div>
 
       {/* FLOATING TOTAL */}
-      <div onMouseDown={startDrag} style={{...floating, transform:`translate(${pos.x}px,${pos.y}px)`}}>
+      <div onMouseDown={startDrag} style={floating}>
         ₹ {total.toLocaleString()}
         <div style={{fontSize:12,opacity:0.6}}>Incl. GST</div>
       </div>
