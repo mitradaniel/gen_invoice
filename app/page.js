@@ -13,9 +13,10 @@ export default function Page() {
   const [to, setTo] = useState("");
   const [loading, setLoading] = useState(false);
 
-  /* ===== DRAG ===== */
+  /* ===== SMOOTH DRAG ===== */
   const [pos, setPos] = useState({ x: 140, y: 500 });
   const dragging = useRef(false);
+  const velocity = useRef({ x: 0, y: 0 });
   const offset = useRef({ x: 0, y: 0 });
 
   const startDrag = (e) => {
@@ -29,37 +30,71 @@ export default function Page() {
 
   const onMove = (e) => {
     if (!dragging.current) return;
+
     const clientX = e.touches ? e.touches[0].clientX : e.clientX;
     const clientY = e.touches ? e.touches[0].clientY : e.clientY;
 
-    setPos({
-      x: clientX - offset.current.x,
-      y: clientY - offset.current.y
-    });
+    const newX = clientX - offset.current.x;
+    const newY = clientY - offset.current.y;
+
+    velocity.current = {
+      x: newX - pos.x,
+      y: newY - pos.y
+    };
+
+    setPos({ x: newX, y: newY });
   };
 
-  const stopDrag = () => dragging.current = false;
+  const stopDrag = () => {
+    dragging.current = false;
+
+    // Smooth inertial effect
+    let friction = 0.92;
+    let vx = velocity.current.x;
+    let vy = velocity.current.y;
+
+    const animate = () => {
+      vx *= friction;
+      vy *= friction;
+
+      if (Math.abs(vx) < 0.1 && Math.abs(vy) < 0.1) return;
+
+      setPos((prev) => ({
+        x: prev.x + vx,
+        y: prev.y + vy
+      }));
+
+      requestAnimationFrame(animate);
+    };
+
+    animate();
+  };
 
   useEffect(() => {
     window.addEventListener("mousemove", onMove);
     window.addEventListener("mouseup", stopDrag);
     window.addEventListener("touchmove", onMove);
     window.addEventListener("touchend", stopDrag);
+
     return () => {
       window.removeEventListener("mousemove", onMove);
       window.removeEventListener("mouseup", stopDrag);
       window.removeEventListener("touchmove", onMove);
       window.removeEventListener("touchend", stopDrag);
     };
-  }, []);
+  }, [pos]);
 
   /* ===== TASK LOGIC ===== */
 
   const addTask = () => {
-    setTasks([
-      ...tasks,
-      { id: Date.now(), name: "", qty: 0, rate: 0, amount: 0, type: "sqft" }
-    ]);
+    setTasks([...tasks, {
+      id: Date.now(),
+      name: "",
+      qty: 0,
+      rate: 0,
+      amount: 0,
+      type: "sqft"
+    }]);
   };
 
   const updateTask = (id, field, value) => {
@@ -77,34 +112,19 @@ export default function Page() {
   };
 
   const subtotal = tasks.reduce((s, t) => s + getTotal(t), 0);
-  const sgst = subtotal * 0.09;
-  const cgst = subtotal * 0.09;
-  const total = subtotal + sgst + cgst;
+  const total = subtotal * 1.18;
 
   const generatePDF = async () => {
     setLoading(true);
-
     const res = await fetch("/api/generate", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        to,
-        tasks,
-        subject,
-        invoice,
-        date,
-        subtotal,
-        sgst,
-        cgst,
-        total
-      })
+      body: JSON.stringify({ to, tasks, subject, invoice, date, subtotal, total })
     });
 
     const blob = await res.blob();
     const url = window.URL.createObjectURL(blob);
-
     window.open(url);
-
     setLoading(false);
   };
 
@@ -113,41 +133,25 @@ export default function Page() {
 
       <h2 style={title}>Invoice Generator</h2>
 
-      <textarea
-        placeholder="To Address"
-        value={to}
-        onChange={(e) => setTo(e.target.value)}
-        style={input}
-      />
-
-      <input
-        placeholder="Subject"
-        value={subject}
-        onChange={(e) => setSubject(e.target.value)}
-        style={input}
-      />
+      <textarea placeholder="To Address" value={to} onChange={(e) => setTo(e.target.value)} style={input}/>
+      <input placeholder="Subject" value={subject} onChange={(e) => setSubject(e.target.value)} style={input}/>
 
       <div style={row}>
         <input value={invoice} onChange={(e) => setInvoice(e.target.value)} style={input}/>
         <input type="date" onChange={(e) => setDate(e.target.value)} style={input}/>
       </div>
 
-      <h4 style={sectionTitle}>Tasks</h4>
-
       {tasks.map((t) => (
         <div key={t.id} style={card}>
 
           <div style={taskHeader}>
             <input
-              placeholder="Task description"
+              placeholder="Task"
               value={t.name}
               onChange={(e) => updateTask(t.id, "name", e.target.value)}
               style={{ ...input, marginBottom: 0 }}
             />
-
-            <button onClick={() => deleteTask(t.id)} style={deleteBtn}>
-              ✕
-            </button>
+            <button onClick={() => deleteTask(t.id)} style={deleteBtn}>✕</button>
           </div>
 
           <div style={segmented}>
@@ -157,11 +161,11 @@ export default function Page() {
                 onClick={() => updateTask(t.id, "type", type)}
                 style={{
                   ...segmentItem,
-                  background: t.type === type ? "#111" : "transparent",
-                  color: t.type === type ? "#fff" : "#666"
+                  background: t.type === type ? "#000" : "transparent",
+                  color: t.type === type ? "#fff" : "#555"
                 }}
               >
-                {type === "sqft" ? "SQFT/RFT" : type === "nos" ? "Nos" : "Direct"}
+                {type}
               </div>
             ))}
           </div>
@@ -175,32 +179,27 @@ export default function Page() {
             <input type="number" placeholder="Amount" onChange={(e) => updateTask(t.id, "amount", +e.target.value)} style={input}/>
           )}
 
-          <div style={amount}>
-            ₹ {getTotal(t).toLocaleString()}
-          </div>
+          <div style={amount}>₹ {getTotal(t).toLocaleString()}</div>
 
         </div>
       ))}
 
-      <button onClick={addTask} style={addBtn}>
-        + Add Task
-      </button>
+      <button onClick={addTask} style={addBtn}>+ Add Task</button>
 
-      {/* DRAG TOTAL */}
+      {/* FLOATING TOTAL */}
       <div
         onMouseDown={startDrag}
         onTouchStart={startDrag}
         style={{
-          ...floatingTotal,
+          ...floating,
           transform: `translate(${pos.x}px, ${pos.y}px)`
         }}
       >
         ₹ {total.toLocaleString()}
-        <div style={{ fontSize: 12, opacity: 0.6 }}>Incl. GST</div>
       </div>
 
-      {/* GENERATE BUTTON */}
-      <button onClick={generatePDF} style={floatingBtn}>
+      {/* BUTTON */}
+      <button onClick={generatePDF} style={generateBtn}>
         {loading ? "Generating..." : "Generate PDF"}
       </button>
 
@@ -208,14 +207,14 @@ export default function Page() {
   );
 }
 
-/* ===== PREMIUM STYLES ===== */
+/* ===== APPLE STYLE ===== */
 
 const container = {
   maxWidth: 480,
   margin: "auto",
   padding: 20,
   fontFamily: "Inter, sans-serif",
-  background: "#f8f9fb",
+  background: "#f5f5f7",
   minHeight: "100vh"
 };
 
@@ -226,67 +225,60 @@ const title = {
   fontWeight: "600"
 };
 
-const sectionTitle = {
-  marginTop: 20,
-  marginBottom: 10,
-  fontWeight: "600"
-};
-
 const input = {
   width: "100%",
   padding: 14,
   marginBottom: 12,
   borderRadius: 14,
-  border: "1px solid #e5e7eb",
+  border: "1px solid #ddd",
   background: "#fff",
-  fontSize: 14
+  transition: "0.2s"
 };
 
 const row = { display: "flex", gap: 10 };
 
 const card = {
   padding: 16,
-  borderRadius: 18,
+  borderRadius: 20,
   background: "#fff",
   marginBottom: 14,
-  boxShadow: "0 10px 25px rgba(0,0,0,0.06)"
+  boxShadow: "0 20px 40px rgba(0,0,0,0.08)",
+  transition: "0.3s"
 };
 
 const taskHeader = {
   display: "flex",
-  alignItems: "center",
   gap: 10,
-  marginBottom: 10
+  alignItems: "center"
 };
 
 const deleteBtn = {
-  width: 34,
-  height: 34,
+  width: 32,
+  height: 32,
   borderRadius: "50%",
+  background: "#f2f2f2",
   border: "none",
-  background: "#fee2e2",
-  color: "#dc2626",
   cursor: "pointer"
 };
 
 const segmented = {
   display: "flex",
   borderRadius: 12,
-  background: "#f3f4f6",
-  overflow: "hidden",
-  marginBottom: 10
+  background: "#eee",
+  marginTop: 10,
+  overflow: "hidden"
 };
 
 const segmentItem = {
   flex: 1,
-  textAlign: "center",
   padding: 10,
-  cursor: "pointer",
-  fontSize: 13
+  textAlign: "center",
+  cursor: "pointer"
 };
 
 const amount = {
   textAlign: "right",
+  marginTop: 10,
   fontWeight: "600"
 };
 
@@ -294,36 +286,34 @@ const addBtn = {
   width: "100%",
   padding: 14,
   borderRadius: 14,
-  background: "#111",
+  background: "#000",
   color: "#fff",
   border: "none",
-  marginBottom: 20
+  marginTop: 10
 };
 
-const floatingTotal = {
+const floating = {
   position: "fixed",
   top: 0,
   left: 0,
-  background: "#fff",
-  padding: "12px 18px",
-  borderRadius: 22,
-  boxShadow: "0 12px 30px rgba(0,0,0,0.15)",
-  cursor: "grab",
-  zIndex: 20,
-  fontWeight: "600"
+  padding: "14px 20px",
+  borderRadius: 25,
+  background: "rgba(255,255,255,0.7)",
+  backdropFilter: "blur(20px)",
+  boxShadow: "0 20px 40px rgba(0,0,0,0.2)",
+  fontWeight: "600",
+  cursor: "grab"
 };
 
-const floatingBtn = {
+const generateBtn = {
   position: "fixed",
   bottom: 20,
   left: "50%",
   transform: "translateX(-50%)",
-  width: "92%",
-  maxWidth: 420,
+  width: "90%",
   padding: 16,
-  borderRadius: 16,
+  borderRadius: 18,
   background: "#000",
   color: "#fff",
-  border: "none",
-  fontWeight: "600"
+  border: "none"
 };
