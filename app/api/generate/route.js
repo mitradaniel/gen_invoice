@@ -221,7 +221,7 @@ if (remarks && remarks.trim()) {
     return new Response(pdfBytes, {
       headers: {
         "Content-Type": "application/pdf",
-        "Content-Disposition": `inline; filename="${invoice}_${subject}.pdf"`
+        "Content-Disposition": `attachment; filename="${invoice}_${subject}.pdf"`
       }
     });
 
