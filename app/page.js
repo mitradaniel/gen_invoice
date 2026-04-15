@@ -186,7 +186,10 @@ export default function Page() {
 
               {["sqft","nos","direct"].map(type=>(
                 <div key={type}
-                  onClick={()=>updateTask(t.id,"type",type)}
+                  onClick={()=>{
+                    updateTask(t.id,"type",type);
+                    navigator.vibrate?.(10);
+                  }}
                   style={{...segmentItem, color:t.type===type?"#fff":"#666"}}
                 >
                   {type}
@@ -244,7 +247,7 @@ const card = { padding:16, borderRadius:18, marginBottom:14 };
 const taskHeader = { display:"flex", gap:10 };
 const deleteBtn = { width:32, height:32, borderRadius:"50%" };
 const segmentedContainer = { position:"relative", display:"flex", background:"#e5e7eb", borderRadius:14, padding:4, marginTop:10, marginBottom:14 };
-const slider = { position:"absolute", top:4, left:4, width:"33.33%", height:"calc(100% - 8px)", background:"#000", borderRadius:10, transition:"transform 0.3s" };
+const slider = { position:"absolute", top:4, left:4, width:"33.33%", height:"calc(100% - 8px)", background:"#000", borderRadius:10, transition:"transform 0.28s cubic-bezier(0.34,1.56,0.64,1)" };
 const segmentItem = { flex:1, textAlign:"center", padding:10, cursor:"pointer", zIndex:1 };
 const amount = { textAlign:"right" };
 const addBtn = { width:"100%", padding:14, borderRadius:12, background:"#000", color:"#fff" };
