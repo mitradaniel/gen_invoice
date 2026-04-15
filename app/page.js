@@ -105,6 +105,7 @@ export default function Page() {
 
       const blob = await res.blob();
       const url = window.URL.createObjectURL(blob);
+      window.open(url);
       
       const a = document.createElement("a");
       a.href = url;
