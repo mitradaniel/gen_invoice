@@ -65,15 +65,15 @@ export async function POST(req) {
 
     /* ================= HEADER RIGHT ================= */
     page.drawText(`Date: ${date}`, {
-      x: width - 180,
-      y: 680,
+      x: width - 150,
+      y: 670,
       size: 10,
       font
     });
 
     page.drawText(`Invoice: ${invoice}`, {
       x: width - 180,
-      y: 660,
+      y: 650,
       size: 10,
       font
     });
