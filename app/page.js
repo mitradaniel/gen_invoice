@@ -7,33 +7,7 @@ export default function Page() {
   const [loading, setLoading] = useState(false);
 
   const [docType, setDocType] = useState("INVOICE"); // ✅ ADDED
-<div style={{
-  display: "flex",
-  background: "#e5e7eb",
-  borderRadius: 14,
-  padding: 4,
-  marginBottom: 12
-}}>
-  {["INVOICE", "QUOTATION"].map(type => (
-    <div
-      key={type}
-      onClick={() => setDocType(type)}
-      style={{
-        flex: 1,
-        textAlign: "center",
-        padding: 10,
-        borderRadius: 10,
-        cursor: "pointer",
-        background: docType === type ? "#000" : "transparent",
-        color: docType === type ? "#fff" : "#666"
-      }}
-    >
-      {type}
-    </div>
-  ))}
-</div>
 
-  
   const [tasks, setTasks] = useState([
     { id: Date.now(), name: "", qty: 0, rate: 0, amount: 0, type: "sqft" }
   ]);
@@ -116,17 +90,17 @@ export default function Page() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-        to,
-        tasks,
-        subject,
-        invoice,
-        date,
-        subtotal,
-        sgst: gst / 2,
-        cgst: gst / 2,
-        total,
-        docType   // ✅ ADD THIS ONLY
-      })
+          to,
+          tasks,
+          subject,
+          invoice,
+          date,
+          subtotal,
+          sgst: gst / 2,
+          cgst: gst / 2,
+          total,
+          docType // ✅ ADDED
+        })
       });
 
       const blob = await res.blob();
@@ -142,33 +116,48 @@ export default function Page() {
 
   return (
     <div style={{
-      ...container,
+      maxWidth: 520,
+      margin: "auto",
+      padding: 20,
       background: dark ? "#0b0b0c" : "#f5f5f7",
       color: dark ? "#fff" : "#000"
     }}>
 
       {/* HEADER */}
-      <div style={header}>
+      <div style={{
+        position: "sticky",
+        top: 0,
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        padding: "10px 0"
+      }}>
         <h2 style={{ margin: 0 }}>Invoice Generator</h2>
 
         <div style={{ display: "flex", gap: 10 }}>
-          <button onClick={generatePDF} style={topBtn}>
+          <button onClick={generatePDF} style={{
+            padding: "10px 14px",
+            borderRadius: 10,
+            border: "none",
+            background: "#000",
+            color: "#fff"
+          }}>
             {loading ? "..." : "PDF"}
           </button>
 
-          <button onClick={() => setDark(!dark)} style={toggle}>
+          <button onClick={() => setDark(!dark)}>
             {dark ? "☀️" : "🌙"}
           </button>
         </div>
       </div>
 
       {/* FORM */}
-      <div style={formWrapper}>
+      <div style={{ paddingBottom: 120 }}>
 
         <textarea placeholder="To Address" value={to} onChange={(e)=>setTo(e.target.value)} style={input}/>
         <input placeholder="Subject" value={subject} onChange={(e)=>setSubject(e.target.value)} style={input}/>
 
-        {/* ✅ ADDED TOGGLE */}
+        {/* ✅ TOGGLE */}
         <div style={{
           display: "flex",
           background: "#e5e7eb",
@@ -195,34 +184,52 @@ export default function Page() {
           ))}
         </div>
 
-        <div style={row}>
+        <div style={{ display: "flex", gap: 10 }}>
           <input value={invoice} onChange={(e)=>setInvoice(e.target.value)} style={input}/>
           <input type="date" onChange={(e)=>setDate(e.target.value)} style={input}/>
         </div>
 
         {tasks.map((t)=>(
           <div key={t.id} style={card}>
-
-            <div style={taskHeader}>
-              <input value={t.name} onChange={(e)=>updateTask(t.id,"name",e.target.value)} style={{...input,marginBottom:0}}/>
-              <button onClick={()=>deleteTask(t.id)} style={deleteBtn}>✕</button>
+            <input value={t.name} onChange={(e)=>updateTask(t.id,"name",e.target.value)} style={input}/>
+            <div style={{ textAlign: "right" }}>
+              ₹ {getTotal(t).toLocaleString()}
             </div>
-
-            <div style={amount}>₹ {getTotal(t).toLocaleString()}</div>
-
           </div>
         ))}
 
-        <button onClick={addTask} style={addBtn}>+ Add Task</button>
+        <button onClick={addTask}>+ Add Task</button>
 
       </div>
 
-      {/* FLOATING TOTAL */}
-      <div onMouseDown={startDrag} style={floating}>
+      {/* FLOATING */}
+      <div style={{
+        position: "fixed",
+        bottom: 90,
+        right: 20,
+        padding: "12px 18px",
+        borderRadius: 20,
+        background: "#fff"
+      }}>
         ₹ {total.toLocaleString()}
-        <div style={{fontSize:12,opacity:0.6}}>Incl. GST</div>
+        <div style={{ fontSize: 12 }}>Incl. GST</div>
       </div>
 
     </div>
   );
 }
+
+/* STYLES */
+const input = {
+  width: "100%",
+  padding: 14,
+  marginBottom: 12,
+  borderRadius: 12
+};
+
+const card = {
+  padding: 16,
+  borderRadius: 18,
+  marginBottom: 14,
+  background: "#fff"
+};
