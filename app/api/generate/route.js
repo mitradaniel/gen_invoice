@@ -2,27 +2,39 @@ import { PDFDocument, StandardFonts } from "pdf-lib";
 import fs from "fs";
 import path from "path";
 
+/* ✅ VERY IMPORTANT */
+export const runtime = "nodejs";
+
 export async function POST(req) {
   try {
     const body = await req.json();
 
     const {
-      to,
-      tasks,
-      subject,
-      invoice,
-      date,
-      subtotal,
-      sgst,
-      cgst,
-      total
+      to = "",
+      tasks = [],
+      subject = "",
+      invoice = "",
+      date = "",
+      subtotal = 0,
+      sgst = 0,
+      cgst = 0,
+      total = 0
     } = body;
 
-    /* ===== LOAD TEMPLATE ===== */
+    /* ===== LOAD TEMPLATE SAFELY ===== */
     const filePath = path.join(process.cwd(), "public", "Invoice_Template.pdf");
+
+    if (!fs.existsSync(filePath)) {
+      throw new Error("Template PDF not found in /public folder");
+    }
+
     const existingPdfBytes = fs.readFileSync(filePath);
 
-    const pdfDoc = await PDFDocument.load(existingPdfBytes);
+    /* ===== LOAD PDF ===== */
+    const pdfDoc = await PDFDocument.load(existingPdfBytes, {
+      ignoreEncryption: true,
+    });
+
     const page = pdfDoc.getPages()[0];
 
     const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
@@ -30,12 +42,9 @@ export async function POST(req) {
 
     const { width, height } = page.getSize();
 
-    /* ================= POSITIONS (ADJUSTABLE) ================= */
+    /* ================= TO ADDRESS ================= */
 
-    let yStart = height - 120;
-
-    /* ===== TO ADDRESS ===== */
-    let y = yStart;
+    let y = height - 120;
 
     const toLines = to.split("\n");
 
@@ -49,7 +58,8 @@ export async function POST(req) {
       y -= 14;
     });
 
-    /* ===== SUBJECT ===== */
+    /* ================= SUBJECT ================= */
+
     page.drawText(`Subject: ${subject}`, {
       x: 50,
       y: y - 10,
@@ -57,22 +67,24 @@ export async function POST(req) {
       font: boldFont
     });
 
-    /* ===== DATE + INVOICE (RIGHT) ===== */
-    page.drawText(date, {
-      x: width - 150,
+    /* ================= DATE + INVOICE ================= */
+
+    page.drawText(`Date: ${date}`, {
+      x: width - 180,
       y: height - 80,
       size: 10,
       font
     });
 
-    page.drawText(invoice, {
-      x: width - 150,
-      y: height - 100,
+    page.drawText(`Invoice: ${invoice}`, {
+      x: width - 180,
+      y: height - 95,
       size: 10,
       font
     });
 
-    /* ===== TASKS ===== */
+    /* ================= TASKS ================= */
+
     let taskY = height - 250;
 
     tasks.forEach((t, i) => {
@@ -103,7 +115,7 @@ export async function POST(req) {
       taskY -= 18;
     });
 
-    /* ===== CALCULATIONS ===== */
+    /* ================= CALCULATIONS ================= */
 
     let calcY = taskY - 30;
 
@@ -132,7 +144,7 @@ export async function POST(req) {
     drawLine("CGST:", cgst);
     drawLine("Total:", total, true);
 
-    /* ===== SAVE ===== */
+    /* ================= SAVE ================= */
 
     const pdfBytes = await pdfDoc.save();
 
@@ -144,7 +156,11 @@ export async function POST(req) {
     });
 
   } catch (err) {
-    console.error(err);
-    return new Response("PDF generation failed", { status: 500 });
+    console.error("PDF ERROR:", err);
+
+    return new Response(
+      JSON.stringify({ error: err.message }),
+      { status: 500 }
+    );
   }
 }
