@@ -18,7 +18,6 @@ export async function POST(req) {
       total = 0
     } = body;
 
-    // ===== LOAD TEMPLATE =====
     const filePath = path.join(process.cwd(), "public", "Invoice_Template.pdf");
     const existingPdfBytes = fs.readFileSync(filePath);
 
@@ -28,136 +27,56 @@ export async function POST(req) {
     const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
     const bold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
 
-    // ===== TO ADDRESS =====
+    // TO
     let yTo = 700;
-
-    page.drawText("TO,", {
-      x: 50,
-      y: yTo,
-      size: 11,
-      font
-    });
-
+    page.drawText("TO,", { x: 50, y: yTo, size: 11, font });
     yTo -= 16;
 
-    const addressLines = (to || "").split("\n");
-
-    addressLines.forEach(line => {
+    (to || "").split("\n").forEach(line => {
       if (line.trim()) {
-        page.drawText(line, {
-          x: 50,
-          y: yTo,
-          size: 11,
-          font
-        });
+        page.drawText(line, { x: 50, y: yTo, size: 11, font });
         yTo -= 14;
       }
     });
 
-    // ===== HEADER =====
-    page.drawText(date || "", {
-      x: 460,
-      y: 720,
-      size: 10,
-      font
-    });
+    // HEADER
+    page.drawText(date, { x: 460, y: 720, size: 10, font });
+    page.drawText(invoice, { x: 520, y: 700, size: 10, font });
 
-    page.drawText(invoice || "", {
-      x: 520,
-      y: 700,
-      size: 10,
-      font
-    });
+    // SUBJECT
+    page.drawText(subject, { x: 100, y: 650, size: 12, font: bold });
 
-    // ===== SUBJECT =====
-    page.drawText(subject || "", {
-      x: 100,
-      y: 650,
-      size: 12,
-      font: bold
-    });
-
-    // ===== TASKS =====
+    // TASKS
     let y = 600;
 
     tasks.forEach((t, i) => {
-
       let totalVal = 0;
 
-      if (t.type === "direct") {
-        totalVal = t.amount || 0;
-      } else {
-        totalVal = (t.qty || 0) * (t.rate || 0);
-      }
+      if (t.type === "direct") totalVal = t.amount || 0;
+      else totalVal = (t.qty || 0) * (t.rate || 0);
 
-      // Line 1: Task name
-      page.drawText(`${i + 1}. ${t.name || ""}`, {
-        x: 50,
-        y,
-        size: 10,
-        font
-      });
-
+      page.drawText(`${i + 1}. ${t.name}`, { x: 50, y, size: 10, font });
       y -= 14;
 
-      // Line 2: Values
       if (t.type === "direct") {
-        page.drawText(
-          `INR ${Math.round(totalVal)}`,
-          {
-            x: 70,
-            y,
-            size: 10,
-            font
-          }
-        );
+        page.drawText(`INR ${Math.round(totalVal)}`, { x: 70, y, size: 10, font });
       } else {
         const unitLabel = t.type === "sqft" ? "SQFT/RFT" : "Nos";
-
         page.drawText(
           `${t.qty || 0} ${unitLabel} x ${t.rate || 0} = INR ${Math.round(totalVal)}`,
-          {
-            x: 70,
-            y,
-            size: 10,
-            font
-          }
+          { x: 70, y, size: 10, font }
         );
       }
 
       y -= 20;
     });
 
-    // ===== TOTALS =====
-    page.drawText(`Total INR ${Math.round(subtotal)}`, {
-      x: 50,
-      y: 200,
-      size: 11,
-      font: bold
-    });
+    // TOTALS
+    page.drawText(`Total INR ${Math.round(subtotal)}`, { x: 50, y: 200, size: 11, font: bold });
+    page.drawText(`SGST INR ${Math.round(sgst)}`, { x: 50, y: 180, size: 11, font });
+    page.drawText(`CGST INR ${Math.round(cgst)}`, { x: 50, y: 160, size: 11, font });
+    page.drawText(`Grand Total INR ${Math.round(total)}`, { x: 50, y: 140, size: 12, font: bold });
 
-    page.drawText(`SGST INR ${Math.round(sgst)}`, {
-      x: 50,
-      y: 180,
-      size: 11,
-      font
-    });
-
-    page.drawText(`CGST INR ${Math.round(cgst)}`, {
-      x: 50,
-      y: 160,
-      size: 11,
-      font
-    });
-
-    page.drawText(`Grand Total INR ${Math.round(total)}`, {
-      x: 50,
-      y: 140,
-      size: 12,
-      font: bold
-    });
-
-    // ===== SAVE PDF =====
     const pdfBytes = await pdfDoc.save();
 
     return new Response(pdfBytes, {
