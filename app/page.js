@@ -98,7 +98,8 @@ export default function Page() {
           sgst: gst / 2,
           cgst: gst / 2,
           total,
-          docType
+          docType,
+          remarks
         })
       });
 
