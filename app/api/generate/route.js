@@ -2,20 +2,11 @@ import { PDFDocument, StandardFonts } from "pdf-lib";
 
 export const runtime = "nodejs";
 
-const formatINR = (num) =>
-  new Intl.NumberFormat("en-IN").format(Math.round(num || 0));
-
-const formatDate = (d) => {
-  if (!d) return "";
-  const x = new Date(d);
-  return `${String(x.getDate()).padStart(2, "0")}-${String(
-    x.getMonth() + 1
-  ).padStart(2, "0")}-${x.getFullYear()}`;
-};
-
 export async function POST(req) {
   try {
     const body = await req.json();
+
+    console.log("BODY RECEIVED:", body);
 
     const {
       tasks = [],
@@ -31,53 +22,43 @@ export async function POST(req) {
       remarks = ""
     } = body;
 
-    /* ===== CREATE NEW PDF ===== */
     const pdfDoc = await PDFDocument.create();
-    const page = pdfDoc.addPage([595, 842]); // A4
+    const page = pdfDoc.addPage([595, 842]);
 
     const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
     const bold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
 
-    const { width } = page.getSize();
+    let y = 800;
 
     /* ===== TITLE ===== */
-    const titleWidth = bold.widthOfTextAtSize(docType, 24);
-
     page.drawText(docType, {
-      x: (width - titleWidth) / 2,
-      y: 780,
-      size: 24,
+      x: 50,
+      y,
+      size: 20,
       font: bold
     });
 
-    /* ===== HEADER ===== */
-    page.drawText(`Date: ${formatDate(date)}`, {
-      x: width - 200,
-      y: 760,
-      size: 10,
-      font
-    });
+    y -= 30;
 
-    page.drawText(`Invoice: ${invoice}`, {
-      x: width - 200,
-      y: 745,
-      size: 10,
-      font
-    });
+    /* ===== HEADER ===== */
+    page.drawText(`Invoice: ${invoice}`, { x: 50, y, size: 10, font });
+    y -= 15;
+
+    page.drawText(`Date: ${date}`, { x: 50, y, size: 10, font });
+    y -= 25;
 
     /* ===== TO ===== */
-    let y = 700;
+    page.drawText("TO:", { x: 50, y, size: 11, font: bold });
+    y -= 15;
 
-    page.drawText("TO,", { x: 50, y, size: 11, font: bold });
-    y -= 16;
-
-    to.split("\n").forEach((line) => {
-      page.drawText(line, { x: 50, y, size: 10, font });
+    (to || "").split("\n").forEach(line => {
+      page.drawText(line || "", { x: 50, y, size: 10, font });
       y -= 14;
     });
 
-    /* ===== SUBJECT ===== */
     y -= 10;
+
+    /* ===== SUBJECT ===== */
     page.drawText(`Subject: ${subject}`, {
       x: 50,
       y,
@@ -85,91 +66,80 @@ export async function POST(req) {
       font: bold
     });
 
-    /* ===== TASKS ===== */
-    let taskY = y - 40;
+    y -= 30;
 
-    tasks.forEach((t, i) => {
+    /* ===== TASKS ===== */
+    for (let i = 0; i < tasks.length; i++) {
+      const t = tasks[i];
+
       const val =
         t.type === "direct"
-          ? t.amount || 0
-          : (t.qty || 0) * (t.rate || 0);
+          ? Number(t.amount || 0)
+          : Number(t.qty || 0) * Number(t.rate || 0);
 
-      page.drawText(`${i + 1}. ${t.name}`, {
+      page.drawText(`${i + 1}. ${t.name || ""}`, {
         x: 50,
-        y: taskY,
+        y,
         size: 10,
         font
       });
 
-      taskY -= 14;
+      y -= 14;
 
       const line =
         t.type === "direct"
-          ? `₹ ${formatINR(val)}`
-          : `${t.qty || 0} × ${formatINR(t.rate)} = ₹ ${formatINR(val)}`;
+          ? `₹ ${val}`
+          : `${t.qty || 0} × ${t.rate || 0} = ₹ ${val}`;
 
       page.drawText(line, {
         x: 70,
-        y: taskY,
+        y,
         size: 10,
         font
       });
 
-      taskY -= 20;
-    });
+      y -= 20;
+
+      if (y < 100) {
+        y = 800;
+        page = pdfDoc.addPage([595, 842]);
+      }
+    }
 
     /* ===== REMARKS ===== */
     if (remarks) {
       page.drawText("Remarks:", {
         x: 50,
-        y: taskY,
+        y,
         size: 11,
         font: bold
       });
 
-      taskY -= 14;
+      y -= 15;
 
       page.drawText(remarks, {
         x: 50,
-        y: taskY,
+        y,
         size: 10,
         font
       });
 
-      taskY -= 20;
+      y -= 20;
     }
 
     /* ===== TOTALS ===== */
-    page.drawText(`Subtotal: ₹ ${formatINR(subtotal)}`, {
+    page.drawText(`Subtotal: ₹ ${subtotal}`, { x: 50, y, size: 11, font });
+    y -= 15;
+
+    page.drawText(`SGST: ₹ ${sgst}`, { x: 50, y, size: 11, font });
+    y -= 15;
+
+    page.drawText(`CGST: ₹ ${cgst}`, { x: 50, y, size: 11, font });
+    y -= 20;
+
+    page.drawText(`Grand Total: ₹ ${total}`, {
       x: 50,
-      y: taskY,
-      size: 11,
-      font
-    });
-
-    taskY -= 15;
-
-    page.drawText(`SGST: ₹ ${formatINR(sgst)}`, {
-      x: 50,
-      y: taskY,
-      size: 11,
-      font
-    });
-
-    taskY -= 15;
-
-    page.drawText(`CGST: ₹ ${formatINR(cgst)}`, {
-      x: 50,
-      y: taskY,
-      size: 11,
-      font
-    });
-
-    taskY -= 20;
-
-    page.drawText(`Grand Total: ₹ ${formatINR(total)}`, {
-      x: 50,
-      y: taskY,
+      y,
       size: 12,
       font: bold
     });
@@ -177,13 +147,18 @@ export async function POST(req) {
     const pdfBytes = await pdfDoc.save();
 
     return new Response(pdfBytes, {
+      status: 200,
       headers: {
         "Content-Type": "application/pdf"
       }
     });
 
   } catch (err) {
-    console.error("PDF ERROR:", err);
-    return new Response("PDF failed", { status: 500 });
+    console.error("🔥 REAL ERROR:", err);
+
+    return new Response(
+      JSON.stringify({ error: err.message }),
+      { status: 500 }
+    );
   }
 }
