@@ -13,12 +13,13 @@ export default function Page() {
   const [invoice, setInvoice] = useState("2026/27/001");
   const [date, setDate] = useState("");
   const [to, setTo] = useState("");
+  const [loading, setLoading] = useState(false);
 
+  /* ===== DRAG ===== */
   const [pos, setPos] = useState({ x: 140, y: 500 });
   const dragging = useRef(false);
   const offset = useRef({ x: 0, y: 0 });
 
-  /* ===== DRAG ===== */
   const startDrag = (e) => {
     dragging.current = true;
     const rect = e.currentTarget.getBoundingClientRect();
@@ -48,6 +49,7 @@ export default function Page() {
   }, []);
 
   /* ===== LOGIC ===== */
+
   const updateTask = (id, field, value) => {
     setTasks(tasks.map(t => t.id === id ? { ...t, [field]: value } : t));
   };
@@ -77,6 +79,39 @@ export default function Page() {
   const gst = subtotal * 0.18;
   const total = subtotal + gst;
 
+  /* ===== PDF ===== */
+  const generatePDF = async () => {
+    try {
+      setLoading(true);
+
+      const res = await fetch("/api/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          to,
+          tasks,
+          subject,
+          invoice,
+          date,
+          subtotal,
+          sgst: gst / 2,
+          cgst: gst / 2,
+          total
+        })
+      });
+
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      window.open(url);
+
+      setLoading(false);
+
+    } catch (err) {
+      alert("PDF failed");
+      setLoading(false);
+    }
+  };
+
   return (
     <div style={{
       ...container,
@@ -92,61 +127,77 @@ export default function Page() {
         </button>
       </div>
 
-      {/* FORM */}
-      <textarea placeholder="To Address" onChange={(e) => setTo(e.target.value)} style={input}/>
-      <input placeholder="Subject" onChange={(e) => setSubject(e.target.value)} style={input}/>
+      {/* FORM WRAPPER (FIXED WIDTH ALIGNMENT) */}
+      <div style={formWrapper}>
 
-      <div style={row}>
-        <input value={invoice} onChange={(e) => setInvoice(e.target.value)} style={input}/>
-        <input type="date" onChange={(e) => setDate(e.target.value)} style={input}/>
-      </div>
+        <textarea
+          placeholder="To Address"
+          value={to}
+          onChange={(e) => setTo(e.target.value)}
+          style={input}
+        />
 
-      {/* TASKS */}
-      {tasks.map((t) => (
-        <div key={t.id} style={card}>
+        <input
+          placeholder="Subject"
+          value={subject}
+          onChange={(e) => setSubject(e.target.value)}
+          style={input}
+        />
 
-          <div style={taskHeader}>
-            <input placeholder="Task" onChange={(e) => updateTask(t.id, "name", e.target.value)} style={{...input, marginBottom:0}}/>
-            <button onClick={() => deleteTask(t.id)} style={deleteBtn}>✕</button>
-          </div>
-
-          <div style={segmented}>
-            {["sqft","nos","direct"].map(type => (
-              <div key={type}
-                onClick={() => updateTask(t.id,"type",type)}
-                style={{
-                  ...segmentItem,
-                  background: t.type === type ? "#000" : "transparent",
-                  color: t.type === type ? "#fff" : "#777"
-                }}>
-                {type}
-              </div>
-            ))}
-          </div>
-
-          {t.type !== "direct" ? (
-            <div style={row}>
-              <input type="number" placeholder="Qty" onChange={(e)=>updateTask(t.id,"qty",+e.target.value)} style={input}/>
-              <input type="number" placeholder="Rate" onChange={(e)=>updateTask(t.id,"rate",+e.target.value)} style={input}/>
-            </div>
-          ) : (
-            <input type="number" placeholder="Amount" onChange={(e)=>updateTask(t.id,"amount",+e.target.value)} style={input}/>
-          )}
-
-          <div style={amount}>₹ {getTotal(t).toLocaleString()}</div>
+        <div style={row}>
+          <input value={invoice} onChange={(e) => setInvoice(e.target.value)} style={input}/>
+          <input type="date" onChange={(e) => setDate(e.target.value)} style={input}/>
         </div>
-      ))}
 
-      <button onClick={addTask} style={addBtn}>+ Add Task</button>
+        {tasks.map((t) => (
+          <div key={t.id} style={card}>
+
+            <div style={taskHeader}>
+              <input
+                placeholder="Task"
+                onChange={(e) => updateTask(t.id, "name", e.target.value)}
+                style={{...input, marginBottom:0}}
+              />
+              <button onClick={() => deleteTask(t.id)} style={deleteBtn}>✕</button>
+            </div>
+
+            <div style={segmented}>
+              {["sqft","nos","direct"].map(type => (
+                <div key={type}
+                  onClick={() => updateTask(t.id,"type",type)}
+                  style={{
+                    ...segmentItem,
+                    background: t.type === type ? "#000" : "transparent",
+                    color: t.type === type ? "#fff" : "#777"
+                  }}>
+                  {type}
+                </div>
+              ))}
+            </div>
+
+            {t.type !== "direct" ? (
+              <div style={row}>
+                <input type="number" placeholder="Qty" onChange={(e)=>updateTask(t.id,"qty",+e.target.value)} style={input}/>
+                <input type="number" placeholder="Rate" onChange={(e)=>updateTask(t.id,"rate",+e.target.value)} style={input}/>
+              </div>
+            ) : (
+              <input type="number" placeholder="Amount" onChange={(e)=>updateTask(t.id,"amount",+e.target.value)} style={input}/>
+            )}
+
+            <div style={amount}>₹ {getTotal(t).toLocaleString()}</div>
+          </div>
+        ))}
+
+        <button onClick={addTask} style={addBtn}>+ Add Task</button>
+
+      </div>
 
       {/* LIVE PREVIEW */}
       <div style={preview}>
         <h3>Live Preview</h3>
         <div>{subject}</div>
         {tasks.map((t,i)=>(
-          <div key={i}>
-            {t.name} - ₹ {getTotal(t)}
-          </div>
+          <div key={i}>{t.name} - ₹ {getTotal(t)}</div>
         ))}
         <hr/>
         <b>Total: ₹ {total.toFixed(0)}</b>
@@ -164,6 +215,11 @@ export default function Page() {
         <div style={{fontSize:12, opacity:0.6}}>Incl. GST</div>
       </div>
 
+      {/* GENERATE BUTTON */}
+      <button onClick={generatePDF} style={generateBtn}>
+        {loading ? "Generating..." : "Generate PDF"}
+      </button>
+
     </div>
   );
 }
@@ -171,21 +227,28 @@ export default function Page() {
 /* ===== STYLES ===== */
 
 const container = {
-  maxWidth: 500,
+  maxWidth: 520,
   margin: "auto",
   padding: 20,
   fontFamily: "Inter"
 };
 
+const formWrapper = {
+  background: "#ffffff10",
+  padding: 16,
+  borderRadius: 20,
+  backdropFilter: "blur(10px)"
+};
+
 const header = {
   display:"flex",
   justifyContent:"space-between",
-  alignItems:"center"
+  alignItems:"center",
+  marginBottom:10
 };
 
 const toggle = {
   border:"none",
-  background:"#ddd",
   padding:10,
   borderRadius:10,
   cursor:"pointer"
@@ -262,4 +325,19 @@ const floating = {
   boxShadow:"0 20px 40px rgba(0,0,0,0.2)",
   fontWeight:"600",
   cursor:"grab"
+};
+
+const generateBtn = {
+  position:"fixed",
+  bottom:20,
+  left:"50%",
+  transform:"translateX(-50%)",
+  width:"92%",
+  maxWidth:420,
+  padding:16,
+  borderRadius:16,
+  background:"#000",
+  color:"#fff",
+  border:"none",
+  fontWeight:"600"
 };
