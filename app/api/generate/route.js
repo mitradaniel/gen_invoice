@@ -25,7 +25,7 @@ export async function POST(req) {
       sgst = 0,
       cgst = 0,
       total = 0,
-      docType = "INVOICE" // ✅ ADDED
+      docType = "INVOICE"   // ✅ ADD THIS
     } = body;
 
     const filePath = path.join(process.cwd(), "public", "Invoice_Template.pdf");
