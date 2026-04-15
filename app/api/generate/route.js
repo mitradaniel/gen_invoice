@@ -2,6 +2,7 @@ import { PDFDocument, StandardFonts } from "pdf-lib";
 import fs from "fs";
 import path from "path";
 
+/* ✅ REQUIRED for fs */
 export const runtime = "nodejs";
 
 export async function POST(req) {
@@ -22,21 +23,28 @@ export async function POST(req) {
 
     let pdfDoc;
 
-    /* ===== LOAD TEMPLATE SAFELY ===== */
+    /* ===== LOAD TEMPLATE ===== */
     try {
-      const filePath = path.join(process.cwd(), "public", "Invoice_Template.pdf");
+      const filePath = path.join(
+        process.cwd(),
+        "public",
+        "Invoice_Template.pdf"
+      );
 
       if (fs.existsSync(filePath)) {
         const existingPdfBytes = fs.readFileSync(filePath);
-        pdfDoc = await PDFDocument.load(existingPdfBytes);
+
+        pdfDoc = await PDFDocument.load(existingPdfBytes, {
+          ignoreEncryption: true,
+        });
       } else {
-        pdfDoc = await PDFDocument.create();
-        pdfDoc.addPage([595, 842]);
+        throw new Error("Template not found");
       }
-    } catch (e) {
-      console.log("Template failed, fallback to blank PDF");
+    } catch (err) {
+      console.log("⚠️ Using blank PDF fallback");
+
       pdfDoc = await PDFDocument.create();
-      pdfDoc.addPage([595, 842]);
+      pdfDoc.addPage([595, 842]); // A4
     }
 
     const page = pdfDoc.getPages()[0];
@@ -46,40 +54,48 @@ export async function POST(req) {
 
     const { width, height } = page.getSize();
 
-    let y = height - 100;
+    /* ================= TO ADDRESS ================= */
+    let y = height - 120;
 
-    /* ===== TO ADDRESS ===== */
-    to.split("\n").forEach((line) => {
-      page.drawText(line, { x: 50, y, size: 10, font });
+    const toLines = to.split("\n");
+
+    toLines.forEach((line) => {
+      page.drawText(line, {
+        x: 50,
+        y,
+        size: 10,
+        font,
+      });
       y -= 14;
     });
 
-    /* ===== SUBJECT ===== */
+    /* ================= SUBJECT ================= */
     y -= 10;
+
     page.drawText(`Subject: ${subject}`, {
       x: 50,
       y,
       size: 11,
-      font: boldFont
+      font: boldFont,
     });
 
-    /* ===== DATE + INVOICE ===== */
+    /* ================= DATE + INVOICE ================= */
     page.drawText(`Date: ${date}`, {
       x: width - 180,
       y: height - 60,
       size: 10,
-      font
+      font,
     });
 
     page.drawText(`Invoice: ${invoice}`, {
       x: width - 180,
       y: height - 75,
       size: 10,
-      font
+      font,
     });
 
-    /* ===== TASKS ===== */
-    let taskY = height - 220;
+    /* ================= TASKS ================= */
+    let taskY = height - 230;
 
     tasks.forEach((t, i) => {
       const amount =
@@ -96,20 +112,20 @@ export async function POST(req) {
         x: 60,
         y: taskY,
         size: 10,
-        font
+        font,
       });
 
       page.drawText(`₹ ${amount.toFixed(0)}`, {
         x: width - 100,
         y: taskY,
         size: 10,
-        font
+        font,
       });
 
       taskY -= 18;
     });
 
-    /* ===== CALCULATIONS ===== */
+    /* ================= CALCULATIONS ================= */
     let calcY = taskY - 20;
 
     const rightX = width - 160;
@@ -119,14 +135,14 @@ export async function POST(req) {
         x: rightX,
         y: calcY,
         size: 10,
-        font: bold ? boldFont : font
+        font: bold ? boldFont : font,
       });
 
       page.drawText(`₹ ${value.toFixed(0)}`, {
         x: rightX + 80,
         y: calcY,
         size: 10,
-        font: bold ? boldFont : font
+        font: bold ? boldFont : font,
       });
 
       calcY -= 15;
@@ -137,21 +153,24 @@ export async function POST(req) {
     drawLine("CGST:", cgst);
     drawLine("Total:", total, true);
 
-    /* ===== SAVE ===== */
+    /* ================= SAVE ================= */
     const pdfBytes = await pdfDoc.save();
 
-    return new Response(pdfBytes, {
+    /* 🔥 CRITICAL FIX (NO CORRUPTION) */
+    const pdfBuffer = Buffer.from(pdfBytes);
+
+    return new Response(pdfBuffer, {
       status: 200,
       headers: {
         "Content-Type": "application/pdf",
-        "Content-Disposition": `attachment; filename="${invoice || "invoice"}.pdf`,
+        "Content-Disposition": `inline; filename="${invoice || "invoice"}.pdf`,
       },
     });
 
   } catch (err) {
-    console.error("PDF ERROR:", err);
+    console.error("❌ PDF ERROR:", err);
 
-    return new Response("Internal Server Error", {
+    return new Response("PDF generation failed", {
       status: 500,
     });
   }
