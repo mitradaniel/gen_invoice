@@ -31,6 +31,61 @@ export async function POST(req) {
 
     const { width } = page.getSize();
 
+    /* ================= TEXT WRAP FUNCTION ================= */
+    const drawWrappedText = (text, x, y, maxWidth, lineHeight, font, size) => {
+      const words = text.split(" ");
+      let line = "";
+      let lines = [];
+
+      words.forEach(word => {
+        const testLine = line + word + " ";
+        const textWidth = font.widthOfTextAtSize(testLine, size);
+
+        if (textWidth > maxWidth) {
+          lines.push(line);
+          line = word + " ";
+        } else {
+          line = testLine;
+        }
+      });
+
+      lines.push(line);
+
+      lines.forEach((l, i) => {
+        page.drawText(l.trim(), {
+          x,
+          y: y - i * lineHeight,
+          size,
+          font
+        });
+      });
+
+      return y - lines.length * lineHeight;
+    };
+
+    /* ================= HEADER RIGHT ================= */
+    page.drawText(`Date: ${date}`, {
+      x: width - 180,
+      y: 760,
+      size: 10,
+      font
+    });
+
+    page.drawText(`Invoice: ${invoice}`, {
+      x: width - 180,
+      y: 740,
+      size: 10,
+      font
+    });
+
+    /* ================= SUBJECT (ALIGN WITH HEADER) ================= */
+    page.drawText(`Subject: ${subject}`, {
+      x: 50,
+      y: 760,
+      size: 12,
+      font: bold
+    });
+
     /* ================= TO ADDRESS ================= */
     let yTo = 700;
 
@@ -44,29 +99,6 @@ export async function POST(req) {
       }
     });
 
-    /* ================= HEADER (RIGHT SIDE) ================= */
-    page.drawText(`Date: ${date}`, {
-      x: width - 180,
-      y: 720,
-      size: 10,
-      font
-    });
-
-    page.drawText(`Invoice No: ${invoice}`, {
-      x: width - 180,
-      y: 700,
-      size: 10,
-      font
-    });
-
-    /* ================= SUBJECT ================= */
-    page.drawText(`Subject: ${subject}`, {
-      x: 50,
-      y: 650,
-      size: 12,
-      font: bold
-    });
-
     /* ================= TASKS ================= */
     let y = 600;
 
@@ -77,65 +109,60 @@ export async function POST(req) {
       else if (t.mode === "rate") totalVal = t.rate || 0;
       else totalVal = t.amount || 0;
 
-      // Title
-      page.drawText(`${i + 1}. ${t.name}`, {
-        x: 50,
+      // TASK TITLE (WRAPPED)
+      y = drawWrappedText(
+        `${i + 1}. ${t.name}`,
+        50,
         y,
-        size: 10,
-        font: bold
-      });
+        400,
+        14,
+        bold,
+        10
+      );
 
-      y -= 14;
+      // VALUE BELOW (NOT RIGHT SIDE)
+      let valueText = "";
 
-      // Details
       if (t.mode === "qty") {
-        page.drawText(
-          `${t.qty || 0} ${t.unit || ""} × ${t.rate || 0}`,
-          { x: 60, y, size: 10, font }
-        );
+        valueText = `${t.qty || 0} ${t.unit || ""} × ${t.rate || 0} = INR ${Math.round(totalVal)}`;
       } else if (t.mode === "rate") {
-        page.drawText(`Rate`, { x: 60, y, size: 10, font });
+        valueText = `Rate = INR ${Math.round(totalVal)}`;
       } else {
-        page.drawText(`Direct Amount`, { x: 60, y, size: 10, font });
+        valueText = `INR ${Math.round(totalVal)}`;
       }
 
-      // Amount RIGHT ALIGNED
-      page.drawText(`INR ${Math.round(totalVal)}`, {
-        x: width - 120,
-        y,
-        size: 10,
-        font
-      });
+      y = drawWrappedText(
+        valueText,
+        60,
+        y - 2,
+        400,
+        14,
+        font,
+        10
+      );
 
-      y -= 20;
+      y -= 10;
     });
 
-    /* ================= TOTALS (RIGHT SIDE) ================= */
+    /* ================= TOTALS (LEFT SIDE) ================= */
 
     let yTotal = 200;
 
-    const drawRight = (label, value, boldText = false) => {
-      page.drawText(label, {
-        x: width - 220,
+    const drawLeft = (label, value, boldText = false) => {
+      page.drawText(`${label} INR ${Math.round(value)}`, {
+        x: 50,
         y: yTotal,
-        size: 11,
-        font: boldText ? bold : font
-      });
-
-      page.drawText(`INR ${Math.round(value)}`, {
-        x: width - 100,
-        y: yTotal,
-        size: 11,
+        size: boldText ? 12 : 11,
         font: boldText ? bold : font
       });
 
       yTotal -= 18;
     };
 
-    drawRight("Subtotal:", subtotal);
-    drawRight("SGST (9%):", sgst);
-    drawRight("CGST (9%):", cgst);
-    drawRight("Grand Total:", total, true);
+    drawLeft("Subtotal:", subtotal);
+    drawLeft("SGST:", sgst);
+    drawLeft("CGST:", cgst);
+    drawLeft("Grand Total:", total, true);
 
     /* ================= SAVE ================= */
 
