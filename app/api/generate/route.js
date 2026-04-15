@@ -18,11 +18,9 @@ export const runtime = "nodejs";
 
 export async function POST(req) {
   try {
-        let body;
-    if (req.method === "POST") {
-      const formData = await req.formData();
-      body = JSON.parse(formData.get("data"));
-    }
+    /* ===== FIXED BODY HANDLING ===== */
+    const formData = await req.formData();
+    const body = JSON.parse(formData.get("data") || "{}");
 
     const {
       tasks = [],
@@ -34,7 +32,7 @@ export async function POST(req) {
       sgst = 0,
       cgst = 0,
       total = 0,
-      docType = "INVOICE",// ✅ ADDED
+      docType = "INVOICE",
       remarks = ""
     } = body;
 
@@ -97,7 +95,7 @@ export async function POST(req) {
     });
 
     /* ===== CENTER TITLE ===== */
-    const text = docType || "INVOICE"; // ✅ UPDATED
+    const text = docType || "INVOICE";
     const fontSize = 25;
     const textWidth = bold.widthOfTextAtSize(text, fontSize);
     const xCenter = (width - textWidth) / 2;
@@ -196,36 +194,39 @@ export async function POST(req) {
     drawLeft("SGST:", sgst);
     drawLeft("CGST:", cgst);
     drawLeft("Grand Total:", total, true);
+
     /* ===== REMARKS ===== */
+    if (remarks && remarks.trim()) {
 
-if (remarks && remarks.trim()) {
-  let remarkY = yTotal - 20;
-  page.drawText("Remarks:", {
-    x: 50,
-    y: remarkY,
-    size: 11,
-    font: bold
-  });
+      let remarkY = yTotal - 20;
 
-  remarkY -= 15;
+      page.drawText("Remarks:", {
+        x: 50,
+        y: remarkY,
+        size: 11,
+        font: bold
+      });
 
-  drawWrappedText(
-    remarks,
-    50,
-    remarkY,
-    450,
-    14,
-    font,
-    10
-  );
-}
+      remarkY -= 15;
+
+      drawWrappedText(
+        remarks,
+        50,
+        remarkY,
+        450,
+        14,
+        font,
+        10
+      );
+    }
+
     /* ===== SAVE ===== */
     const pdfBytes = await pdfDoc.save();
 
     return new Response(pdfBytes, {
       headers: {
         "Content-Type": "application/pdf",
-        "Content-Disposition": `attachment; filename="${invoice}_${subject}.pdf"`
+        "Content-Disposition": `attachment; filename="${invoice}.pdf"`
       }
     });
 
