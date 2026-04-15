@@ -51,37 +51,44 @@ export default function Page() {
 
   /* ===== PDF ===== */
   const generatePDF = async () => {
-    try {
-      setLoading(true);
+  try {
+    setLoading(true);
 
-      const res = await fetch("/api/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          to,
-          tasks,
-          subject,
-          invoice,
-          date,
-          subtotal,
-          sgst: gst / 2,
-          cgst: gst / 2,
-          total,
-          docType,   // ✅ NEW
-          remarks    // ✅ NEW
-        })
-      });
+    const res = await fetch("/api/generate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        to,
+        tasks,
+        subject,
+        invoice,
+        date,
+        subtotal,
+        sgst: gst / 2,
+        cgst: gst / 2,
+        total,
+        docType,
+        remarks
+      })
+    });
 
-      const blob = await res.blob();
-      const url = window.URL.createObjectURL(blob);
-      window.open(url);
-
-      setLoading(false);
-    } catch {
-      alert("PDF failed");
-      setLoading(false);
+    if (!res.ok) {
+      const text = await res.text();
+      alert("PDF Error: " + text);
+      return;
     }
-  };
+
+    const blob = await res.blob();
+    const url = window.URL.createObjectURL(blob);
+    window.open(url);
+
+  } catch (err) {
+    console.error(err);
+    alert("PDF failed");
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <div style={{
