@@ -105,8 +105,15 @@ export default function Page() {
 
       const blob = await res.blob();
       const url = window.URL.createObjectURL(blob);
-      window.open(url);
-
+      
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${invoice || "invoice"}.pdf`; // file name
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      
+      window.URL.revokeObjectURL(url);
       setLoading(false);
     } catch {
       alert("PDF failed");
