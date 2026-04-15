@@ -6,8 +6,6 @@ export async function POST(req) {
   try {
     const body = await req.json();
 
-    console.log("BODY RECEIVED:", body);
-
     const {
       tasks = [],
       subject = "",
@@ -23,31 +21,22 @@ export async function POST(req) {
     } = body;
 
     const pdfDoc = await PDFDocument.create();
-    const page = pdfDoc.addPage([595, 842]);
+    let page = pdfDoc.addPage([595, 842]); // <-- FIXED (let)
 
     const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
     const bold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
 
     let y = 800;
 
-    /* ===== TITLE ===== */
-    page.drawText(docType, {
-      x: 50,
-      y,
-      size: 20,
-      font: bold
-    });
-
+    page.drawText(docType, { x: 50, y, size: 20, font: bold });
     y -= 30;
 
-    /* ===== HEADER ===== */
     page.drawText(`Invoice: ${invoice}`, { x: 50, y, size: 10, font });
     y -= 15;
 
     page.drawText(`Date: ${date}`, { x: 50, y, size: 10, font });
     y -= 25;
 
-    /* ===== TO ===== */
     page.drawText("TO:", { x: 50, y, size: 11, font: bold });
     y -= 15;
 
@@ -58,17 +47,9 @@ export async function POST(req) {
 
     y -= 10;
 
-    /* ===== SUBJECT ===== */
-    page.drawText(`Subject: ${subject}`, {
-      x: 50,
-      y,
-      size: 11,
-      font: bold
-    });
+    page.drawText(`Subject: ${subject}`, { x: 50, y, size: 11, font: bold });
+    y -= 25;
 
-    y -= 30;
-
-    /* ===== TASKS ===== */
     for (let i = 0; i < tasks.length; i++) {
       const t = tasks[i];
 
@@ -77,13 +58,7 @@ export async function POST(req) {
           ? Number(t.amount || 0)
           : Number(t.qty || 0) * Number(t.rate || 0);
 
-      page.drawText(`${i + 1}. ${t.name || ""}`, {
-        x: 50,
-        y,
-        size: 10,
-        font
-      });
-
+      page.drawText(`${i + 1}. ${t.name || ""}`, { x: 50, y, size: 10, font });
       y -= 14;
 
       const line =
@@ -91,43 +66,18 @@ export async function POST(req) {
           ? `₹ ${val}`
           : `${t.qty || 0} × ${t.rate || 0} = ₹ ${val}`;
 
-      page.drawText(line, {
-        x: 70,
-        y,
-        size: 10,
-        font
-      });
-
+      page.drawText(line, { x: 70, y, size: 10, font });
       y -= 20;
-
-      if (y < 100) {
-        y = 800;
-        page = pdfDoc.addPage([595, 842]);
-      }
     }
 
-    /* ===== REMARKS ===== */
     if (remarks) {
-      page.drawText("Remarks:", {
-        x: 50,
-        y,
-        size: 11,
-        font: bold
-      });
-
+      page.drawText("Remarks:", { x: 50, y, size: 11, font: bold });
       y -= 15;
 
-      page.drawText(remarks, {
-        x: 50,
-        y,
-        size: 10,
-        font
-      });
-
+      page.drawText(remarks, { x: 50, y, size: 10, font });
       y -= 20;
     }
 
-    /* ===== TOTALS ===== */
     page.drawText(`Subtotal: ₹ ${subtotal}`, { x: 50, y, size: 11, font });
     y -= 15;
 
@@ -137,12 +87,7 @@ export async function POST(req) {
     page.drawText(`CGST: ₹ ${cgst}`, { x: 50, y, size: 11, font });
     y -= 20;
 
-    page.drawText(`Grand Total: ₹ ${total}`, {
-      x: 50,
-      y,
-      size: 12,
-      font: bold
-    });
+    page.drawText(`Grand Total: ₹ ${total}`, { x: 50, y, size: 12, font: bold });
 
     const pdfBytes = await pdfDoc.save();
 
@@ -154,7 +99,7 @@ export async function POST(req) {
     });
 
   } catch (err) {
-    console.error("🔥 REAL ERROR:", err);
+    console.error("REAL ERROR:", err);
 
     return new Response(
       JSON.stringify({ error: err.message }),
