@@ -225,7 +225,16 @@ const deleteBtn = { width:32, height:32, borderRadius:"50%", border:"none" };
 
 const segmentedContainer = { position:"relative", display:"flex", background:"#e5e7eb", borderRadius:14, padding:4, marginTop:10, marginBottom:14 };
 
-const slider = { position:"absolute", top:4, left:4, width:"50%", height:"calc(100% - 8px)", background:"#000", borderRadius:10, transition:"0.25s" };
+const slider = {
+  position: "absolute",
+  top: 4,
+  left: 4,
+  width: "33.33%",   // FIXED
+  height: "calc(100% - 8px)",
+  background: "#000",
+  borderRadius: 10,
+  transition: "transform 0.25s ease"
+};
 
 const segmentItem = { flex:1, textAlign:"center", padding:10, cursor:"pointer", zIndex:1 };
 
