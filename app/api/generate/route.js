@@ -2,7 +2,6 @@ import { PDFDocument, StandardFonts } from "pdf-lib";
 import fs from "fs";
 import path from "path";
 
-/* ✅ VERY IMPORTANT */
 export const runtime = "nodejs";
 
 export async function POST(req) {
@@ -21,19 +20,29 @@ export async function POST(req) {
       total = 0
     } = body;
 
-    /* ===== LOAD TEMPLATE SAFELY ===== */
-    const filePath = path.join(process.cwd(), "public", "Invoice_Template.pdf");
+    let pdfDoc;
 
-    if (!fs.existsSync(filePath)) {
-      throw new Error("Template PDF not found in /public folder");
+    /* ===== TRY LOADING TEMPLATE ===== */
+    try {
+      const filePath = path.join(
+        process.cwd(),
+        "public",
+        "Invoice_Template.pdf"
+      );
+
+      const existingPdfBytes = fs.readFileSync(filePath);
+
+      pdfDoc = await PDFDocument.load(existingPdfBytes, {
+        ignoreEncryption: true,
+      });
+
+    } catch (err) {
+      console.log("⚠️ Template failed, using blank PDF");
+
+      /* FALLBACK (NO BREAK) */
+      pdfDoc = await PDFDocument.create();
+      pdfDoc.addPage([595, 842]);
     }
-
-    const existingPdfBytes = fs.readFileSync(filePath);
-
-    /* ===== LOAD PDF ===== */
-    const pdfDoc = await PDFDocument.load(existingPdfBytes, {
-      ignoreEncryption: true,
-    });
 
     const page = pdfDoc.getPages()[0];
 
@@ -46,9 +55,7 @@ export async function POST(req) {
 
     let y = height - 120;
 
-    const toLines = to.split("\n");
-
-    toLines.forEach((line) => {
+    to.split("\n").forEach((line) => {
       page.drawText(line, {
         x: 50,
         y,
@@ -156,7 +163,7 @@ export async function POST(req) {
     });
 
   } catch (err) {
-    console.error("PDF ERROR:", err);
+    console.error("❌ FINAL ERROR:", err);
 
     return new Response(
       JSON.stringify({ error: err.message }),
