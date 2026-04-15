@@ -79,10 +79,10 @@ export async function POST(req) {
     });
 
     page.drawText(`INVOICE`, {
-      x: width - 160,
+      x: width - 10,
       y: 650,
       size: 25,
-      font
+      font: bold
     }); 
 
     /* ================= SUBJECT (ALIGN WITH HEADER) ================= */
