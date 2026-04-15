@@ -78,12 +78,20 @@ export async function POST(req) {
       font
     });
 
-    page.drawText(`INVOICE`, {
-      x: width - 10,
+
+    const text = "INVOICE";
+    const fontSize = 25;
+    
+    const textWidth = bold.widthOfTextAtSize(text, fontSize);
+    
+    const xCenter = (width - textWidth) / 2;
+    
+    page.drawText(text, {
+      x: xCenter,
       y: 650,
-      size: 25,
+      size: fontSize,
       font: bold
-    }); 
+    });    
 
     /* ================= SUBJECT (ALIGN WITH HEADER) ================= */
     page.drawText(`Subject: ${subject}`, {
