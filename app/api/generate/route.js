@@ -2,11 +2,11 @@ import { PDFDocument, StandardFonts } from "pdf-lib";
 import fs from "fs";
 import path from "path";
 
+/* ===== DATE FORMAT ===== */
 const formatDate = (inputDate) => {
   if (!inputDate) return "";
 
   const d = new Date(inputDate);
-
   const day = String(d.getDate()).padStart(2, "0");
   const month = String(d.getMonth() + 1).padStart(2, "0");
   const year = d.getFullYear();
@@ -43,9 +43,9 @@ export async function POST(req) {
 
     const { width } = page.getSize();
 
-    /* ================= TEXT WRAP FUNCTION ================= */
+    /* ===== TEXT WRAP ===== */
     const drawWrappedText = (text, x, y, maxWidth, lineHeight, font, size) => {
-      const words = text.split(" ");
+      const words = (text || "").split(" ");
       let line = "";
       let lines = [];
 
@@ -75,8 +75,8 @@ export async function POST(req) {
       return y - lines.length * lineHeight;
     };
 
-    /* ================= HEADER RIGHT ================= */
-    page.drawText(`Date: ${formatDate(date)}`,  {
+    /* ===== HEADER RIGHT ===== */
+    page.drawText(`Date: ${formatDate(date)}`, {
       x: width - 150,
       y: 670,
       size: 10,
@@ -90,19 +90,20 @@ export async function POST(req) {
       font: bold
     });
 
-
+    /* ===== CENTER TITLE ===== */
     const text = "INVOICE";
     const fontSize = 25;
     const textWidth = bold.widthOfTextAtSize(text, fontSize);
     const xCenter = (width - textWidth) / 2;
+
     page.drawText(text, {
       x: xCenter,
       y: 650,
       size: fontSize,
       font: bold
-    });    
+    });
 
-    /* ================= SUBJECT (ALIGN WITH HEADER) ================= */
+    /* ===== SUBJECT ===== */
     page.drawText(`Subject: ${subject}`, {
       x: 50,
       y: 560,
@@ -110,7 +111,7 @@ export async function POST(req) {
       font: bold
     });
 
-    /* ================= TO ADDRESS ================= */
+    /* ===== TO ADDRESS ===== */
     let yTo = 720;
 
     page.drawText("TO,", { x: 50, y: yTo, size: 11, font: bold });
@@ -123,19 +124,23 @@ export async function POST(req) {
       }
     });
 
-    /* ================= TASKS ================= */
+    /* ===== TASKS ===== */
     let y = 520;
 
     tasks.forEach((t, i) => {
+
+      /* ===== FIXED CALCULATION ===== */
       let totalVal = 0;
 
-      if (t.mode === "qty") totalVal = (t.qty || 0) * (t.rate || 0);
-      else if (t.mode === "rate") totalVal = t.rate || 0;
-      else totalVal = t.amount || 0;
+      if (t.type === "sqft" || t.type === "nos") {
+        totalVal = (t.qty || 0) * (t.rate || 0);
+      } else if (t.type === "direct") {
+        totalVal = t.amount || 0;
+      }
 
-      // TASK TITLE (WRAPPED)
+      /* ===== TASK TITLE ===== */
       y = drawWrappedText(
-        `${i + 1}. ${t.name}`,
+        `${i + 1}. ${t.name || ""}`,
         50,
         y,
         400,
@@ -144,14 +149,16 @@ export async function POST(req) {
         10
       );
 
-      // VALUE BELOW (NOT RIGHT SIDE)
+      /* ===== VALUE TEXT ===== */
       let valueText = "";
 
-      if (t.mode === "qty") {
-        valueText = `${t.qty || 0} ${t.unit || ""} × ${t.rate || 0} = INR ${Math.round(totalVal)}`;
-      } else if (t.mode === "rate") {
-        valueText = `Rate = INR ${Math.round(totalVal)}`;
-      } else {
+      if (t.type === "sqft") {
+        valueText = `${t.qty || 0} SQFT × ${t.rate || 0} = INR ${Math.round(totalVal)}`;
+      } 
+      else if (t.type === "nos") {
+        valueText = `${t.qty || 0} Nos × ${t.rate || 0} = INR ${Math.round(totalVal)}`;
+      } 
+      else {
         valueText = `INR ${Math.round(totalVal)}`;
       }
 
@@ -168,8 +175,7 @@ export async function POST(req) {
       y -= 10;
     });
 
-    /* ================= TOTALS (LEFT SIDE) ================= */
-
+    /* ===== TOTALS (LEFT) ===== */
     let yTotal = 200;
 
     const drawLeft = (label, value, boldText = false) => {
@@ -188,8 +194,7 @@ export async function POST(req) {
     drawLeft("CGST:", cgst);
     drawLeft("Grand Total:", total, true);
 
-    /* ================= SAVE ================= */
-
+    /* ===== SAVE ===== */
     const pdfBytes = await pdfDoc.save();
 
     return new Response(pdfBytes, {
