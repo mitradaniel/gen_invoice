@@ -167,6 +167,7 @@ const segmentedContainer = {
   background: "#e5e7eb",
   borderRadius: 14,
   padding: 4,
+  marginTop: 10,
   marginBottom: 14
 };
 
@@ -178,7 +179,7 @@ const slider = {
   height: "calc(100% - 8px)",
   background: "#000",
   borderRadius: 10,
-  transition: "transform 0.25s ease"
+  transition: "transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1)" // 🔥 SPRING
 };
 
 const segmentItem = {
@@ -188,22 +189,9 @@ const segmentItem = {
   cursor: "pointer",
   zIndex: 1,
   fontSize: 13,
-  fontWeight: "500"
+  fontWeight: "500",
+  transition: "transform 0.15s ease"
 };
-
-  {["sqft","nos","direct"].map(type => (
-    <div
-      key={type}
-      onClick={() => updateTask(t.id,"type",type)}
-      style={{
-        ...segmentItem,
-        color: t.type === type ? "#fff" : "#666"
-      }}
-    >
-      {type === "sqft" ? "SQFT/RFT" : type === "nos" ? "Nos" : "Direct"}
-    </div>
-  ))}
-</div>
 
             {t.type !== "direct" ? (
               <div style={row}>
