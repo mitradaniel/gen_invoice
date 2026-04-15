@@ -116,7 +116,7 @@ export default function Page() {
   return (
     <div style={{
       ...container,
-      background: dark ? "#0b0b0c" : "#f5f5f7",
+      background: dark ? "rgba(20,20,20,0.8)" : "#fff",
       color: dark ? "#fff" : "#000"
     }}>
 
