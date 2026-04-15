@@ -13,17 +13,14 @@ export default function Page() {
   const [to, setTo] = useState("");
   const [loading, setLoading] = useState(false);
 
-  /* ===== DRAG STATE ===== */
+  /* ===== DRAG ===== */
   const [pos, setPos] = useState({ x: 140, y: 500 });
   const dragging = useRef(false);
   const offset = useRef({ x: 0, y: 0 });
 
-  /* ===== DRAG HANDLERS ===== */
-
   const startDrag = (e) => {
     dragging.current = true;
     const rect = e.currentTarget.getBoundingClientRect();
-
     offset.current = {
       x: (e.touches ? e.touches[0].clientX : e.clientX) - rect.left,
       y: (e.touches ? e.touches[0].clientY : e.clientY) - rect.top
@@ -32,7 +29,6 @@ export default function Page() {
 
   const onMove = (e) => {
     if (!dragging.current) return;
-
     const clientX = e.touches ? e.touches[0].clientX : e.clientX;
     const clientY = e.touches ? e.touches[0].clientY : e.clientY;
 
@@ -42,16 +38,13 @@ export default function Page() {
     });
   };
 
-  const stopDrag = () => {
-    dragging.current = false;
-  };
+  const stopDrag = () => dragging.current = false;
 
   useEffect(() => {
     window.addEventListener("mousemove", onMove);
     window.addEventListener("mouseup", stopDrag);
     window.addEventListener("touchmove", onMove);
     window.addEventListener("touchend", stopDrag);
-
     return () => {
       window.removeEventListener("mousemove", onMove);
       window.removeEventListener("mouseup", stopDrag);
@@ -110,10 +103,7 @@ export default function Page() {
     const blob = await res.blob();
     const url = window.URL.createObjectURL(blob);
 
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${invoice}_${subject}.pdf`;
-    a.click();
+    window.open(url);
 
     setLoading(false);
   };
@@ -142,12 +132,11 @@ export default function Page() {
         <input type="date" onChange={(e) => setDate(e.target.value)} style={input}/>
       </div>
 
-      <h4 style={{ marginTop: 20 }}>Tasks</h4>
+      <h4 style={sectionTitle}>Tasks</h4>
 
       {tasks.map((t) => (
         <div key={t.id} style={card}>
 
-          {/* HEADER FIXED */}
           <div style={taskHeader}>
             <input
               placeholder="Task description"
@@ -168,8 +157,8 @@ export default function Page() {
                 onClick={() => updateTask(t.id, "type", type)}
                 style={{
                   ...segmentItem,
-                  background: t.type === type ? "#000" : "transparent",
-                  color: t.type === type ? "#fff" : "#555"
+                  background: t.type === type ? "#111" : "transparent",
+                  color: t.type === type ? "#fff" : "#666"
                 }}
               >
                 {type === "sqft" ? "SQFT/RFT" : type === "nos" ? "Nos" : "Direct"}
@@ -179,26 +168,11 @@ export default function Page() {
 
           {t.type !== "direct" ? (
             <div style={row}>
-              <input
-                type="number"
-                placeholder="Qty"
-                onChange={(e) => updateTask(t.id, "qty", +e.target.value)}
-                style={input}
-              />
-              <input
-                type="number"
-                placeholder="Rate"
-                onChange={(e) => updateTask(t.id, "rate", +e.target.value)}
-                style={input}
-              />
+              <input type="number" placeholder="Qty" onChange={(e) => updateTask(t.id, "qty", +e.target.value)} style={input}/>
+              <input type="number" placeholder="Rate" onChange={(e) => updateTask(t.id, "rate", +e.target.value)} style={input}/>
             </div>
           ) : (
-            <input
-              type="number"
-              placeholder="Amount"
-              onChange={(e) => updateTask(t.id, "amount", +e.target.value)}
-              style={input}
-            />
+            <input type="number" placeholder="Amount" onChange={(e) => updateTask(t.id, "amount", +e.target.value)} style={input}/>
           )}
 
           <div style={amount}>
@@ -212,7 +186,7 @@ export default function Page() {
         + Add Task
       </button>
 
-      {/* DRAGGABLE TOTAL */}
+      {/* DRAG TOTAL */}
       <div
         onMouseDown={startDrag}
         onTouchStart={startDrag}
@@ -221,11 +195,11 @@ export default function Page() {
           transform: `translate(${pos.x}px, ${pos.y}px)`
         }}
       >
-        ₹ {total.toFixed(0)}
-        <div style={{ fontSize: 12 }}>Incl. GST</div>
+        ₹ {total.toLocaleString()}
+        <div style={{ fontSize: 12, opacity: 0.6 }}>Incl. GST</div>
       </div>
 
-      {/* BUTTON */}
+      {/* GENERATE BUTTON */}
       <button onClick={generatePDF} style={floatingBtn}>
         {loading ? "Generating..." : "Generate PDF"}
       </button>
@@ -234,56 +208,71 @@ export default function Page() {
   );
 }
 
-/* ===== STYLES ===== */
+/* ===== PREMIUM STYLES ===== */
 
 const container = {
   maxWidth: 480,
   margin: "auto",
   padding: 20,
-  fontFamily: "sans-serif"
+  fontFamily: "Inter, sans-serif",
+  background: "#f8f9fb",
+  minHeight: "100vh"
 };
 
-const title = { textAlign: "center", marginBottom: 20 };
+const title = {
+  textAlign: "center",
+  marginBottom: 20,
+  fontSize: 22,
+  fontWeight: "600"
+};
+
+const sectionTitle = {
+  marginTop: 20,
+  marginBottom: 10,
+  fontWeight: "600"
+};
 
 const input = {
   width: "100%",
-  padding: 12,
-  marginBottom: 10,
-  borderRadius: 12,
-  border: "1px solid #eee",
-  background: "#fafafa"
+  padding: 14,
+  marginBottom: 12,
+  borderRadius: 14,
+  border: "1px solid #e5e7eb",
+  background: "#fff",
+  fontSize: 14
 };
 
 const row = { display: "flex", gap: 10 };
 
 const card = {
-  padding: 15,
-  borderRadius: 16,
+  padding: 16,
+  borderRadius: 18,
   background: "#fff",
-  marginBottom: 12,
-  boxShadow: "0 4px 12px rgba(0,0,0,0.05)"
+  marginBottom: 14,
+  boxShadow: "0 10px 25px rgba(0,0,0,0.06)"
 };
 
 const taskHeader = {
   display: "flex",
-  gap: 10,
   alignItems: "center",
+  gap: 10,
   marginBottom: 10
 };
 
 const deleteBtn = {
-  width: 36,
-  height: 36,
+  width: 34,
+  height: 34,
   borderRadius: "50%",
   border: "none",
-  background: "#f1f1f1",
+  background: "#fee2e2",
+  color: "#dc2626",
   cursor: "pointer"
 };
 
 const segmented = {
   display: "flex",
   borderRadius: 12,
-  background: "#f1f1f1",
+  background: "#f3f4f6",
   overflow: "hidden",
   marginBottom: 10
 };
@@ -291,17 +280,21 @@ const segmented = {
 const segmentItem = {
   flex: 1,
   textAlign: "center",
-  padding: 8,
-  cursor: "pointer"
+  padding: 10,
+  cursor: "pointer",
+  fontSize: 13
 };
 
-const amount = { textAlign: "right", fontWeight: "bold" };
+const amount = {
+  textAlign: "right",
+  fontWeight: "600"
+};
 
 const addBtn = {
   width: "100%",
   padding: 14,
   borderRadius: 14,
-  background: "#000",
+  background: "#111",
   color: "#fff",
   border: "none",
   marginBottom: 20
@@ -312,12 +305,12 @@ const floatingTotal = {
   top: 0,
   left: 0,
   background: "#fff",
-  padding: "12px 16px",
-  borderRadius: 20,
-  boxShadow: "0 8px 20px rgba(0,0,0,0.15)",
+  padding: "12px 18px",
+  borderRadius: 22,
+  boxShadow: "0 12px 30px rgba(0,0,0,0.15)",
   cursor: "grab",
   zIndex: 20,
-  fontWeight: "bold"
+  fontWeight: "600"
 };
 
 const floatingBtn = {
@@ -325,11 +318,12 @@ const floatingBtn = {
   bottom: 20,
   left: "50%",
   transform: "translateX(-50%)",
-  width: "90%",
-  maxWidth: 400,
-  padding: 14,
-  borderRadius: 14,
+  width: "92%",
+  maxWidth: 420,
+  padding: 16,
+  borderRadius: 16,
   background: "#000",
   color: "#fff",
-  border: "none"
+  border: "none",
+  fontWeight: "600"
 };
