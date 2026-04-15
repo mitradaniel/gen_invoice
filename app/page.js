@@ -229,7 +229,7 @@ const slider = {
   position: "absolute",
   top: 4,
   left: 4,
-  width: "33.33%",   // FIXED
+  width: "50%",   // FIXED
   height: "calc(100% - 8px)",
   background: "#000",
   borderRadius: 10,
