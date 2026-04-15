@@ -120,7 +120,11 @@ export default function Page() {
           }}/>
 
           {["INVOICE","QUOTATION"].map(type => (
-            <div key={type} onClick={()=>setDocType(type)} style={segmentItem}>
+            <div
+              key={type}
+              onClick={()=>setDocType(type)}
+              style={segmentItem(docType === type)}
+            >
               {type}
             </div>
           ))}
@@ -139,7 +143,7 @@ export default function Page() {
               <button onClick={()=>deleteTask(t.id)}>✕</button>
             </div>
 
-            {/* TASK TOGGLE */}
+            {/* TASK TYPE */}
             <div style={segmentedContainer}>
               <div style={{
                 ...slider,
@@ -150,8 +154,14 @@ export default function Page() {
               }}/>
 
               {["sqft","nos","direct"].map(type=>(
-                <div key={type} onClick={()=>updateTask(t.id,"type",type)} style={segmentItem}>
-                  {type}
+                <div
+                  key={type}
+                  onClick={()=>updateTask(t.id,"type",type)}
+                  style={segmentItem(t.type === type)}
+                >
+                  {type === "sqft" ? "SQFT/RFT" :
+                   type === "nos" ? "Nos" :
+                   "Direct"}
                 </div>
               ))}
             </div>
@@ -165,20 +175,27 @@ export default function Page() {
               <input type="number" placeholder="Amount" onChange={(e)=>updateTask(t.id,"amount",+e.target.value)} style={input}/>
             )}
 
-            <div style={{textAlign:"right"}}>₹ {getTotal(t).toLocaleString()}</div>
+            <div style={{textAlign:"right"}}>
+              ₹ {getTotal(t).toLocaleString("en-IN")}
+            </div>
 
           </div>
         ))}
 
         <button onClick={addTask} style={addBtn}>+ Add Task</button>
 
-        <textarea placeholder="Remarks" value={remarks} onChange={(e)=>setRemarks(e.target.value)} style={input}/>
+        <textarea
+          placeholder="Remarks"
+          value={remarks}
+          onChange={(e)=>setRemarks(e.target.value)}
+          style={input}
+        />
 
       </div>
 
       {/* FLOATING */}
       <div style={floating}>
-        ₹ {total.toLocaleString()}
+        ₹ {total.toLocaleString("en-IN")}
         <div style={{fontSize:12}}>Incl. GST</div>
       </div>
 
@@ -186,10 +203,31 @@ export default function Page() {
   );
 }
 
-/* STYLES */
-const input = { width:"100%", padding:12, marginBottom:10, borderRadius:10 };
-const card = { padding:16, borderRadius:16, background:"#fff", marginBottom:12 };
-const addBtn = { width:"100%", padding:14, borderRadius:12, background:"#000", color:"#fff" };
+/* ===== STYLES ===== */
+
+const input = {
+  width:"100%",
+  padding:12,
+  marginBottom:10,
+  borderRadius:10,
+  border:"1px solid #ddd"
+};
+
+const card = {
+  padding:16,
+  borderRadius:16,
+  background:"#fff",
+  marginBottom:12
+};
+
+const addBtn = {
+  width:"100%",
+  padding:14,
+  borderRadius:12,
+  background:"#000",
+  color:"#fff",
+  fontWeight:"600"
+};
 
 const segmentedContainer = {
   position:"relative",
@@ -222,13 +260,15 @@ const sliderTwo = {
   transition:"0.25s"
 };
 
-const segmentItem = {
+const segmentItem = (active) => ({
   flex:1,
   textAlign:"center",
   padding:10,
   zIndex:1,
-  cursor:"pointer"
-};
+  cursor:"pointer",
+  color: active ? "#fff" : "#555",
+  fontWeight:500
+});
 
 const floating = {
   position:"fixed",
@@ -236,8 +276,21 @@ const floating = {
   right:20,
   padding:"12px 16px",
   borderRadius:18,
-  background:"rgba(255,255,255,0.7)"
+  background:"rgba(255,255,255,0.6)",
+  backdropFilter:"blur(20px)",
+  boxShadow:"0 10px 30px rgba(0,0,0,0.15)"
 };
 
-const topBtn = { padding:"10px 14px", borderRadius:10, background:"#000", color:"#fff" };
-const toggle = { padding:10, borderRadius:10 };
+const topBtn = {
+  padding:"10px 16px",
+  borderRadius:12,
+  background:"#000",
+  color:"#fff",
+  fontWeight:"600",
+  boxShadow:"0 4px 12px rgba(0,0,0,0.2)"
+};
+
+const toggle = {
+  padding:10,
+  borderRadius:10
+};
