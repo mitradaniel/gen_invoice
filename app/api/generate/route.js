@@ -68,24 +68,21 @@ export async function POST(req) {
       x: width - 150,
       y: 670,
       size: 10,
-      font
+      font: bold
     });
 
     page.drawText(`Invoice: ${invoice}`, {
       x: width - 150,
       y: 650,
       size: 10,
-      font
+      font: bold
     });
 
 
     const text = "INVOICE";
     const fontSize = 25;
-    
     const textWidth = bold.widthOfTextAtSize(text, fontSize);
-    
     const xCenter = (width - textWidth) / 2;
-    
     page.drawText(text, {
       x: xCenter,
       y: 650,
