@@ -232,7 +232,7 @@ export async function POST(req) {
     return new Response(pdfBytes, {
       headers: {
         "Content-Type": "application/pdf",
-        "Content-Disposition": `attachment; filename="${invoice}.pdf`
+        "Content-Disposition": `attachment; filename="${invoice}.pdf"`
       }
     });
 
