@@ -30,7 +30,8 @@ export async function POST(req) {
       sgst = 0,
       cgst = 0,
       total = 0,
-      docType = "INVOICE" // ✅ ADDED
+      docType = "INVOICE",// ✅ ADDED
+      remarks = ""
     } = body;
 
     const filePath = path.join(process.cwd(), "public", "Invoice_Template.pdf");
@@ -191,7 +192,31 @@ export async function POST(req) {
     drawLeft("SGST:", sgst);
     drawLeft("CGST:", cgst);
     drawLeft("Grand Total:", total, true);
+    /* ===== REMARKS ===== */
 
+if (remarks && remarks.trim()) {
+
+  let remarkY = yTotal - 20;
+
+  page.drawText("Remarks:", {
+    x: 50,
+    y: remarkY,
+    size: 11,
+    font: bold
+  });
+
+  remarkY -= 15;
+
+  drawWrappedText(
+    remarks,
+    50,
+    remarkY,
+    450,
+    14,
+    font,
+    10
+  );
+}
     /* ===== SAVE ===== */
     const pdfBytes = await pdfDoc.save();
 
