@@ -73,8 +73,9 @@ export default function Page() {
     });
 
     if (!res.ok) {
-      const text = await res.text();
-      alert("PDF Error: " + text);
+      const errText = await res.text();
+      console.error("BACKEND ERROR:", errText);
+      alert("PDF ERROR:\n" + errText);
       return;
     }
 
@@ -83,8 +84,8 @@ export default function Page() {
     window.open(url);
 
   } catch (err) {
-    console.error(err);
-    alert("PDF failed");
+    console.error("FETCH ERROR:", err);
+    alert("Network error");
   } finally {
     setLoading(false);
   }
