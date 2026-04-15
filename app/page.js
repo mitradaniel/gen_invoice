@@ -11,10 +11,9 @@ export default function Page() {
   const [invoice, setInvoice] = useState("2026/27/001");
   const [date, setDate] = useState("");
   const [to, setTo] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  /* =========================
-     TASK FUNCTIONS
-  ========================= */
+  /* ================= TASK FUNCTIONS ================= */
 
   const addTask = () => {
     setTasks([
@@ -24,15 +23,12 @@ export default function Page() {
   };
 
   const updateTask = (id, field, value) => {
-    const updated = tasks.map((t) =>
-      t.id === id ? { ...t, [field]: value } : t
-    );
-    setTasks(updated);
+    setTasks(tasks.map(t => t.id === id ? { ...t, [field]: value } : t));
   };
 
   const deleteTask = (id) => {
-    if (tasks.length === 1) return; // keep at least one row
-    setTasks(tasks.filter((t) => t.id !== id));
+    if (tasks.length === 1) return;
+    setTasks(tasks.filter(t => t.id !== id));
   };
 
   const getTotal = (t) => {
@@ -46,6 +42,8 @@ export default function Page() {
   const total = subtotal + sgst + cgst;
 
   const generatePDF = async () => {
+    setLoading(true);
+
     const res = await fetch("/api/generate", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -69,6 +67,8 @@ export default function Page() {
     a.href = url;
     a.download = `${invoice}_${subject}.pdf`;
     a.click();
+
+    setLoading(false);
   };
 
   return (
@@ -101,11 +101,21 @@ export default function Page() {
       <h4 style={{ marginTop: 20 }}>Tasks</h4>
 
       {tasks.map((t) => (
-        <div key={t.id} style={card}>
+        <div
+          key={t.id}
+          style={card}
+          onMouseEnter={(e) => e.currentTarget.style.transform = "scale(1.01)"}
+          onMouseLeave={(e) => e.currentTarget.style.transform = "scale(1)"}
+        >
 
-          {/* DELETE BUTTON */}
+          {/* DELETE */}
           <div style={deleteWrapper}>
-            <span onClick={() => deleteTask(t.id)} style={deleteBtn}>
+            <span
+              onClick={() => deleteTask(t.id)}
+              style={deleteBtn}
+              onMouseEnter={(e) => e.target.style.color = "#ff4d4f"}
+              onMouseLeave={(e) => e.target.style.color = "#bbb"}
+            >
               ✕
             </span>
           </div>
@@ -117,7 +127,7 @@ export default function Page() {
             style={input}
           />
 
-          {/* SEGMENTED CONTROL */}
+          {/* TYPE */}
           <div style={segmented}>
             {["sqft", "nos", "direct"].map(type => (
               <div
@@ -159,31 +169,40 @@ export default function Page() {
             />
           )}
 
-          <div style={amount}>₹ {getTotal(t)}</div>
+          <div style={amount}>
+            ₹ {getTotal(t).toLocaleString()}
+          </div>
 
         </div>
       ))}
 
-      <button onClick={addTask} style={addBtn}>+ Add Task</button>
+      <button onClick={addTask} style={addBtn}>
+        + Add Task
+      </button>
 
-      {/* SUMMARY */}
-      <div style={summary}>
-        <div>Subtotal ₹ {subtotal}</div>
-        <div>SGST ₹ {sgst.toFixed(0)}</div>
-        <div>CGST ₹ {cgst.toFixed(0)}</div>
-        <div style={{ fontWeight: "bold" }}>Total ₹ {total.toFixed(0)}</div>
+      {/* STICKY TOTAL */}
+      <div style={stickySummary}>
+        ₹ {total.toFixed(0)}
+        <div style={{ fontSize: 12, color: "#777" }}>Incl. GST</div>
       </div>
 
-      {/* FLOATING BUTTON */}
-      <button onClick={generatePDF} style={floatingBtn}>
-        Generate PDF
+      {/* BUTTON */}
+      <button
+        onClick={generatePDF}
+        disabled={loading}
+        style={{
+          ...floatingBtn,
+          opacity: loading ? 0.7 : 1
+        }}
+      >
+        {loading ? "Generating..." : "Generate PDF"}
       </button>
 
     </div>
   );
 }
 
-/* ===== PREMIUM STYLES ===== */
+/* ===== STYLES ===== */
 
 const container = {
   maxWidth: 480,
@@ -219,7 +238,8 @@ const card = {
   background: "rgba(255,255,255,0.7)",
   backdropFilter: "blur(10px)",
   marginBottom: 12,
-  boxShadow: "0 4px 12px rgba(0,0,0,0.05)"
+  boxShadow: "0 4px 12px rgba(0,0,0,0.05)",
+  transition: "0.2s"
 };
 
 const deleteWrapper = {
@@ -230,9 +250,8 @@ const deleteWrapper = {
 
 const deleteBtn = {
   cursor: "pointer",
-  color: "#999",
-  fontSize: 16,
-  transition: "0.2s"
+  color: "#bbb",
+  fontSize: 16
 };
 
 const segmented = {
@@ -259,18 +278,25 @@ const amount = {
 
 const addBtn = {
   width: "100%",
-  padding: 12,
-  borderRadius: 12,
-  background: "#eee",
+  padding: 14,
+  borderRadius: 14,
+  background: "#000",
+  color: "#fff",
   border: "none",
-  marginBottom: 15
+  marginBottom: 15,
+  cursor: "pointer"
 };
 
-const summary = {
-  padding: 15,
-  borderRadius: 16,
-  background: "#f7f7f7",
-  marginBottom: 80
+const stickySummary = {
+  position: "fixed",
+  bottom: 80,
+  left: "50%",
+  transform: "translateX(-50%)",
+  background: "#fff",
+  padding: "10px 20px",
+  borderRadius: 20,
+  boxShadow: "0 8px 20px rgba(0,0,0,0.1)",
+  fontWeight: "bold"
 };
 
 const floatingBtn = {
