@@ -47,36 +47,46 @@ export default function Page() {
   const total = subtotal + sgst + cgst;
 
   const generatePDF = async () => {
-    try {
-      setLoading(true);
+  try {
+    setLoading(true);
 
-      const res = await fetch("/api/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          to,
-          tasks,
-          subject,
-          invoice,
-          date,
-          subtotal,
-          sgst,
-          cgst,
-          total
-        })
-      });
+    const res = await fetch("/api/generate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        to,
+        tasks,
+        subject,
+        invoice,
+        date,
+        subtotal,
+        sgst,
+        cgst,
+        total
+      })
+    });
 
-      const blob = await res.blob();
-      const url = window.URL.createObjectURL(blob);
-      window.open(url);
-
+    if (!res.ok) {
+      const text = await res.text();
+      console.log("API ERROR:", text);
+      alert("Backend error: " + text);
       setLoading(false);
-
-    } catch (err) {
-      alert("Error generating PDF");
-      setLoading(false);
+      return;
     }
-  };
+
+    const blob = await res.blob();
+
+    const url = window.URL.createObjectURL(blob);
+    window.open(url);
+
+    setLoading(false);
+
+  } catch (err) {
+    console.error("FRONTEND ERROR:", err);
+    alert(err.message);
+    setLoading(false);
+  }
+};
 
   return (
     <div style={{ maxWidth: 600, margin: "auto", padding: 20 }}>
