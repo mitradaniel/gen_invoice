@@ -1,93 +1,156 @@
-import { PDFDocument, StandardFonts } from "pdf-lib";
-import fs from "fs";
-import path from "path";
+import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 
 export async function POST(req) {
   try {
     const body = await req.json();
 
     const {
-      tasks = [],
-      subject = "",
-      invoice = "",
-      date = "",
-      to = "",
-      subtotal = 0,
-      sgst = 0,
-      cgst = 0,
-      total = 0
+      to,
+      tasks,
+      subject,
+      invoice,
+      date,
+      subtotal,
+      sgst,
+      cgst,
+      total
     } = body;
 
-    const filePath = path.join(process.cwd(), "public", "Invoice_Template.pdf");
-    const existingPdfBytes = fs.readFileSync(filePath);
-
-    const pdfDoc = await PDFDocument.load(existingPdfBytes);
-    const page = pdfDoc.getPages()[0];
+    const pdfDoc = await PDFDocument.create();
+    const page = pdfDoc.addPage([595, 842]); // A4
 
     const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
-    const bold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+    const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
 
-    // TO
-    let yTo = 700;
-    page.drawText("TO,", { x: 50, y: yTo, size: 11, font });
-    yTo -= 16;
+    const { width, height } = page.getSize();
 
-    (to || "").split("\n").forEach(line => {
-      if (line.trim()) {
-        page.drawText(line, { x: 50, y: yTo, size: 11, font });
-        yTo -= 14;
-      }
+    let y = height - 50;
+
+    /* ================= HEADER ================= */
+
+    // TO ADDRESS (LEFT)
+    page.drawText("To,", {
+      x: 50,
+      y,
+      size: 11,
+      font: boldFont
     });
 
-    // HEADER
-    page.drawText(date, { x: 460, y: 720, size: 10, font });
-    page.drawText(invoice, { x: 520, y: 700, size: 10, font });
+    y -= 15;
 
-    // SUBJECT
-    page.drawText(subject, { x: 100, y: 650, size: 12, font: bold });
+    const toLines = to.split("\n");
+    toLines.forEach(line => {
+      page.drawText(line, {
+        x: 50,
+        y,
+        size: 10,
+        font
+      });
+      y -= 14;
+    });
 
-    // TASKS
-    let y = 600;
+    // RIGHT SIDE (DATE + INVOICE)
+    page.drawText(`Date: ${date}`, {
+      x: width - 200,
+      y: height - 50,
+      size: 10,
+      font
+    });
+
+    page.drawText(`Invoice No: ${invoice}`, {
+      x: width - 200,
+      y: height - 65,
+      size: 10,
+      font
+    });
+
+    /* ================= SUBJECT ================= */
+
+    y -= 20;
+
+    page.drawText(`Subject: ${subject}`, {
+      x: 50,
+      y,
+      size: 11,
+      font: boldFont
+    });
+
+    y -= 25;
+
+    /* ================= TASKS ================= */
 
     tasks.forEach((t, i) => {
-      let totalVal = 0;
+      const amount =
+        t.type === "direct"
+          ? t.amount || 0
+          : (t.qty || 0) * (t.rate || 0);
 
-      if (t.type === "direct") totalVal = t.amount || 0;
-      else totalVal = (t.qty || 0) * (t.rate || 0);
+      const description =
+        t.type === "direct"
+          ? `${i + 1}. ${t.name} — ₹ ${amount}`
+          : `${i + 1}. ${t.name} (${t.qty} × ${t.rate}) — ₹ ${amount}`;
 
-      page.drawText(`${i + 1}. ${t.name}`, { x: 50, y, size: 10, font });
-      y -= 14;
+      page.drawText(description, {
+        x: 60,
+        y,
+        size: 10,
+        font
+      });
 
-      if (t.type === "direct") {
-        page.drawText(`INR ${Math.round(totalVal)}`, { x: 70, y, size: 10, font });
-      } else {
-        const unitLabel = t.type === "sqft" ? "SQFT/RFT" : "Nos";
-        page.drawText(
-          `${t.qty || 0} ${unitLabel} x ${t.rate || 0} = INR ${Math.round(totalVal)}`,
-          { x: 70, y, size: 10, font }
-        );
-      }
-
-      y -= 20;
+      y -= 18;
     });
 
-    // TOTALS
-    page.drawText(`Total INR ${Math.round(subtotal)}`, { x: 50, y: 200, size: 11, font: bold });
-    page.drawText(`SGST INR ${Math.round(sgst)}`, { x: 50, y: 180, size: 11, font });
-    page.drawText(`CGST INR ${Math.round(cgst)}`, { x: 50, y: 160, size: 11, font });
-    page.drawText(`Grand Total INR ${Math.round(total)}`, { x: 50, y: 140, size: 12, font: bold });
+    /* ================= CALCULATIONS ================= */
+
+    y -= 30;
+
+    const rightX = width - 200;
+
+    const drawRight = (label, value, bold = false) => {
+      page.drawText(label, {
+        x: rightX,
+        y,
+        size: 10,
+        font: bold ? boldFont : font
+      });
+
+      page.drawText(`₹ ${value.toFixed(0)}`, {
+        x: rightX + 100,
+        y,
+        size: 10,
+        font: bold ? boldFont : font
+      });
+
+      y -= 15;
+    };
+
+    drawRight("Subtotal:", subtotal);
+    drawRight("SGST (9%):", sgst);
+    drawRight("CGST (9%):", cgst);
+    drawRight("Total:", total, true);
+
+    /* ================= FOOTER ================= */
+
+    page.drawText("Thank you for your business!", {
+      x: 50,
+      y: 50,
+      size: 10,
+      font,
+      color: rgb(0.4, 0.4, 0.4)
+    });
+
+    /* ================= SAVE ================= */
 
     const pdfBytes = await pdfDoc.save();
 
     return new Response(pdfBytes, {
       headers: {
         "Content-Type": "application/pdf",
-        "Content-Disposition": `attachment; filename=${invoice}_${subject}.pdf`
+        "Content-Disposition": "attachment; filename=invoice.pdf"
       }
     });
 
   } catch (err) {
-    console.error("🔥 PDF ERROR:", err);
-    return new Response("PDF generation failed", { status: 500 });
+    return new Response("Error generating PDF", { status: 500 });
   }
 }
