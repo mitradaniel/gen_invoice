@@ -81,7 +81,7 @@ export async function POST(req) {
     /* ================= SUBJECT (ALIGN WITH HEADER) ================= */
     page.drawText(`Subject: ${subject}`, {
       x: 50,
-      y: 590,
+      y: 560,
       size: 12,
       font: bold
     });
