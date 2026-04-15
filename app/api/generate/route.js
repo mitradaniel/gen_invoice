@@ -76,7 +76,7 @@ export async function POST(req) {
     };
 
     /* ================= HEADER RIGHT ================= */
-    page.drawText(`Date: ${date}`, {
+    page.drawText(`Date: ${formatDate(date)}`,  {
       x: width - 150,
       y: 670,
       size: 10,
