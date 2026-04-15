@@ -2,6 +2,18 @@ import { PDFDocument, StandardFonts } from "pdf-lib";
 import fs from "fs";
 import path from "path";
 
+const formatDate = (inputDate) => {
+  if (!inputDate) return "";
+
+  const d = new Date(inputDate);
+
+  const day = String(d.getDate()).padStart(2, "0");
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const year = d.getFullYear();
+
+  return `${day}-${month}-${year}`;
+};
+
 export const runtime = "nodejs";
 
 export async function POST(req) {
