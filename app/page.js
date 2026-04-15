@@ -237,7 +237,24 @@ export default function Page() {
 
 const container = { maxWidth: 520, margin: "auto", padding: 20 };
 
-const header = { display:"flex", justifyContent:"space-between", alignItems:"center" };
+<div style={header}>
+  <h2 style={{ margin: 0 }}>Invoice Generator</h2>
+
+const topBtn = {
+  padding: "10px 14px",
+  borderRadius: 10,
+  border: "none",
+  background: "#000",
+  color: "#fff",
+  fontWeight: "600",
+  cursor: "pointer"
+};
+
+    <button onClick={() => setDark(!dark)} style={toggle}>
+      {dark ? "☀️" : "🌙"}
+    </button>
+  </div>
+</div>
 
 const toggle = { padding:10, borderRadius:10, border:"none", cursor:"pointer" };
 
